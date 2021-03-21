@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>定时器中断</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">定时器中断</div>
+<pre><code class="language-html line-numbers">STM32的通用定时器是一个通过可编程预分频器（PSC）驱动的16位自动装载计数器（CNT）
+可用于测量输入信号的脉冲长度（输入捕获） 产生输出波形（输出比较和PWM）
+使用定时器预分频器和RCC时钟控制器预分频器，脉冲长度和周期可以在几微妙和几毫秒间调整
+STM32每个定时器均完全独立 
+STM32的通用定时器有TIM2, TIM3, TIM4, TIM5
+功能有：1）16位向上，向下，向上/向下自动装载计数器（TIMx_CNT)
+		2）16位可编程预分频器（TIMx_PSC), 分频系数为1~65535
+		3）4个独立通道（TIMx_CH1~4）用于输入捕获， 输出比较， PWM生成， 单脉冲输出
+		4）可使用外部信号（TIMx_ETR）控制定时器和定时器互连的同步电路 （一个定时器控制另一个定时器）
+		5）如下事件发生时产生中断/DMA
+			A，更新：计数器向上/向下溢出， 计数器初始化（通过软件或内部/外部触发）
+			B，触发事件
+			C，输入捕获
+			D，输出比较
+			E，支持对定位的增量（正交）编码器和霍尔传感器电路
+			F，触发输入作为外部时钟或按周期的电流管理
+			
+			
+与通用定时器相关的寄存器有 
+			TIMx_CR1 (控制寄存器）  置1 bit0位的CEN 将使能计数器
+			TIMx_CNT (定时器计数器）存储了定时器的计数值
+			TIMx_DIER (DMA/中断使能寄存器）置1 bit0位 来允许更新事件所产生的中断
+			TIMx_PSC (预分频寄存器）对来源时钟进行分频 再提供给计数器
+			TIMx_ARR (自动装载寄存器）与CR1中的ARRE位有关联 
+			TIMx_SR (状态寄存器）用来标记各种事件/中断是否发生 bit0位为产生更新标记
+			
+			
+使用定时器产生中断，然后在中断服务函数中翻转DS1的电平：
+		1）TIM3时钟使能  ->APP1ENR的第一位    
+			在Stm32_Clock_Init函数里把APB1的分频设置为2  TIM3时钟是APB1的2倍及72MHz
+		2）设置TIM3_ARR和TIM3_PSC的值   自动装载值+分频系数+时钟频率  决定定时器溢出时间
+		3）设置TIM3_DIER来允许更新中断
+		4）设置TIM3_CR1来开启定时器
+		5）配置NVIC 设置中断分组
+		6）编写中断函数
+		      通过状态寄存器的值来判断此次中断属于什么类型
+			这里使用的是更新（溢出）中断，所以在状态寄存器SR的最低位。
+			在处理完中断后，应向TIM3_SR的最低位写0 来清除中断标志
+			
+			
+void TIM3_Int_Init（u16 arr， u16 psc）
+TIM3_Int_Init（4999， 7199）   //10KHz的计数频率 计数5K即500ms
+
+</code></pre>
+
+</body>
+</html>

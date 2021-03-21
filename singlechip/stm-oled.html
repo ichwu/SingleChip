@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>OLED</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">OLED</div>
+
+<pre> 8080 接口方式需要如下信号线：
+CS：OLED 片选信号。
+DC： 命令0/数据1。
+WR：向 OLED 写入数据。
+RD：从 OLED 读取数据。
+D[7：0]：8 位双向数据线。
+RST(RES)：硬复位 OLED。
+
+
+ 4 线串行（SPI）方式：
+CS：OLED 片选信号。
+RST(RES)：硬复位 OLED。
+DC：命令/数据标志（0，读写命令；1，读写数据）。
+SCLK：串行时钟线。在 4 线串行模式下，D0 信号线作为串行时钟线 SCLK。
+SDIN：串行数据线。在 4 线串行模式下，D1 信号线作为串行数据线 SDIN。
+模块的 D2 需要悬空，其他引脚可以接到 GND。
+在 4 线串行模式下，只能往模块写数据而不能读数据。
+
+为提高速度，
+所以我们采用的办法是在 STM32F1 的内部建立一个 OLED 的 GRAM（共 128*8 个字节），
+在每次修改的时候，只是修改 STM32F1 上的 GRAM（实际上就是 SRAM），
+在修改完了之后，一次性把 STM32F1 上的 GRAM 写入到 OLED 的 GRAM。</pre>
+
+<img src="../../src/img/singlechip/stm-oled-1.png">
+<img src="../../src/img/singlechip/stm-oled-2.png">
+<pre>第一个命令用于设置对比度的，第一个 0X81 为命令，随后发送的一个字节为要设置的对比度的值。这个值设置得越大屏幕就越亮。
+第二个命令为 0XAE/0XAF。0XAE 为关闭显示命令；0XAF 为开启显示命令。
+第三个命令为 0X8D，第一个为命令字，第二个为设置值，第二个字节的 BIT2 表示电荷泵的开关状态
+第四个命令为 0XB0~B7，该命令用于设置页地址，其低三位的值对应着 GRAM 的页地址。
+第五个指令为 0X00~0X0F，该指令用于设置显示时的起始列地址低四位。
+第六个指令为 0X10~0X1F，该指令用于设置显示时的起始列地址高四位。
+
+设置步骤如下：
+1 ）设置 STM32F1 与 与 OLED 模块相连接的 IO 。这一步，先将我们与 OLED 模块相连的 IO 口设置为输出，
+2 ）初始化 OLED 模块。其实这里就是上面的初始化框图的内容，通过对 OLED 相关寄存器的初始化，来启动 OLED的显示。
+3 ）通过函数将字符和数字显示到 OLED 模块上。这里就是通过我们设计的程序，将要显示的字符送到 OLED 模块就可以了</pre>
+</body>
+</html>

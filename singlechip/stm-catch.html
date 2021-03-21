@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>输入捕捉</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">输入捕捉</div>
+
+<pre>用 TIM5 的通道 1（PA0）来做输入捕获，捕获 PA0 上高电平的脉宽（用 KEY_UP 按键输入高电平），通过串口打印高电平脉宽时间</pre>
+
+<img src="../../src/img/singlechip/stm-catch-1.png">
+
+<pre>如图 15.1.1 所示，就是输入捕获测量高电平脉宽的原理，假定定时器工作在向上计数模式，
+图中 t1~t2 时间，就是我们需要测量的高电平时间。测量方法如下：首先设置定时器通道 x 为
+上升沿捕获，这样，t1 时刻，就会捕获到当前的 CNT 值，然后立即清零 CNT，并设置通道 x
+为下降沿捕获，这样到 t2 时刻，又会发生捕获事件，得到此时的 CNT 值，记为 CCRx2。这样，
+根据定时器的计数频率，我们就可以算出 t1~t2 的时间，从而得到高电平脉宽。
+在 t1~t2 之间，可能产生 N 次定时器溢出，这就要求我们对定时器溢出，做处理，防止高
+电平太长，导致数据不准确。如图15.1.1所示，t1~t2之间，CNT计数的次数等于：N*ARR+CCRx2，
+有了这个计数次数，再乘以 CNT 的计数周期，即可得到 t2-t1 的时间长度，即高电平持续时间。
+输入捕获的原理，我们就介绍到这。
+STM32F1 的定时器，除了 TIM6 和 TIM7，其他定时器都有输入捕获功能。STM32F1 的输
+入捕获，简单的说就是通过检测 TIMx_CHx 上的边沿信号，在边沿信号发生跳变（比如上升沿
+/下降沿）的时候，将当前定时器的值（TIMx_CNT）存放到对应的通道的捕获/比较寄存器
+（TIMx_CCRx）里面，完成一次捕获。同时还可以配置捕获时是否触发中断/DMA 等。
+本章我们用到 TIM5_CH1 来捕获高电平脉宽，捕获原理如图 15.1.1 所示，这里我们就不再
+多说了。
+接下来，我们介绍我们本章需要用到的一些寄存器配置，需要用到的寄存器有：TIMx_ARR、
+TIMx_PSC、TIMx_CCMR1、TIMx_CCER、TIMx_DIER、TIMx_CR1、TIMx_CCR1 这些寄存
+器在前面 2 章全部都有提到(这里的 x=5)，我们这里就不再全部罗列了，我们这里针对性的介绍
+这几个寄存器的配置。
+首先 TIMx_ARR 和 TIMx_PSC，这两个寄存器用来设自动重装载值和 TIMx 的时钟分频，
+用法同前面介绍的，我们这里不再介绍。
+再来看看捕获/比较模式寄存器 1：TIMx_CCMR1，这个寄存器在输入捕获的时候，非常有
+用，有必要重新介绍，该寄存器的各位描述如图 15.1.2 所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-catch-2.png">
+
+<pre>当在输入捕获模式下使用的时候，对应图 15.1.2 的第二行描述，从图中可以看出，
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+176
+STM32 F1 开发指南( ( 寄存器 版) )
+TIMx_CCMR1 明显是针对 2 个通道的配置，低八位[7：0]用于捕获/比较通道 1 的控制，而高八
+位[15：8]则用于捕获/比较通道 2 的控制，因为 TIMx 还有 CCMR2 这个寄存器，所以可以知道
+CCMR2 是用来控制通道 3 和通道 4（详见《STM32 中文参考手册》290 页，14.4.8 节）。
+这里我们用到的是 TIM5 的捕获/比较通道 1，我们重点介绍 TIMx_CCMR1 的[7:0]位（其
+高 8 位配置类似），TIMx_CCMR1 的[7:0]位详细描述见图 15.1.3 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-catch-3.png">
+
+<pre>其中 CC1S[1:0]，这两个位用于 CCR1 的通道配置，这里我们设置 IC1S[1:0]=01，也就是配
+置 IC1 映射在 TI1 上（关于 IC1，TI1 不明白的，可以看《STM32 中文参考手册》14.2 节的图
+98-通用定时器框图），即 CC1 对应 TIMx_CH1。
+输入捕获 1 预分频器 IC1PSC[1:0]，这个比较好理解。我们是 1 次边沿就触发 1 次捕获，所
+以选择 00 就是了。
+输入捕获1滤波器IC1F[3:0]，这个用来设置输入采样频率和数字滤波器长度。其中，
+是定时器的输入频率（TIMxCLK），一般是 72Mhz，而 则是根据 TIMx_CR1 的 CKD[1:0]
+的设置来确定的，如果 CKD[1:0]设置为 00，那么 = 。N 值就是滤波长度，举个简
+单的例子：假设 IC1F[3:0]=0011，并设置 IC1 映射到通道 1 上，且为上升沿触发，那么在捕获
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+177
+STM32 F1 开发指南( ( 寄存器 版) )
+到上升沿的时候，再以 的频率，连续采样到 8 次通道 1 的电平，如果都是高电平，则说
+明确实是一个有效的触发，就会触发输入捕获中断（如果开启了的话）。这样可以滤除那些高电
+平脉宽低于 8 个采样周期的脉冲信号，从而达到滤波的效果。这里，我们不做滤波处理，所以
+设置 IC1F[3:0]=0000，只要采集到上升沿，就触发捕获。
+再来看看捕获/比较使能寄存器：TIMx_CCER，该寄存器的各位描述见图 14.1.3（在第 14
+章）。本章我们要用到这个寄存器的最低 2 位，CC1E 和 CC1P 位。这两个位的描述如图 15.1.4
+</pre>
+
+<pre>所以，要使能输入捕获，必须设置 CC1E=1，而 CC1P 则根据自己的需要来配置。
+接下来我们再看看 DMA/中断使能寄存器：TIMx_DIER，该寄存器的各位描述见图 13.1.2
+（在第 13 章），本章，我们需要用到中断来处理捕获数据，所以必须开启通道 1 的捕获比较中
+断，即 CC1IE 设置为 1。
+控制寄存器：TIMx_CR1，我们只用到了它的最低位，也就是用来使能定时器的，这里前
+面两章都有介绍，请大家参考前面的章节。
+最后再来看看捕获/比较寄存器 1：TIMx_CCR1，该寄存器用来存储捕获发生时，TIMx_CNT
+的值，我们从 TIMx_CCR1 就可以读出通道 1 捕获发生时刻的 TIMx_CNT 值，通过两次捕获（一
+次上升沿捕获，一次下降沿捕获）的差值，就可以计算出高电平脉冲的宽度（注意，对于脉宽
+太长的情况，还要计算定时器溢出的次数）。
+至此，我们把本章要用的几个相关寄存器都介绍完了，本章要实现通过输入捕获，来获取
+TIM5_CH1(PA0)上面的高电平脉冲宽度，并从串口打印捕获结果。下面我们介绍输入捕获的配
+置步骤：
+1 ）开启 TIM5 时钟，配置 PA0 为下拉输入。 。
+要使用 TIM5，我们必须先开启 TIM5 的时钟(通过 APB1ENR 设置)。这里我们还要配置 PA0
+为下拉输入，因为我们要捕获 TIM5_CH1 上面的高电平脉宽，而 TIM5_CH1 是连接在 PA0 上
+面的。
+2 ）设置 TIM5 的 的 ARR 和 和 PSC 。
+在开启了 TIM5 的时钟之后，我们要设置 ARR 和 PSC 两个寄存器的值来设置输入捕获的
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+178
+STM32 F1 开发指南( ( 寄存器 版) )
+自动重装载值和计数频率。
+3 ）设置 TIM5 的 的 CCMR1
+TIM5_CCMR1 寄存器控制着输入捕获 1 和 2 的模式，包括映射关系，滤波和分频等。这里
+我们需要设置通道 1 为输入模式，且 IC1 映射到 TI1(通道 1)上面，并且不使用滤波（提高响应
+速度）器。
+4） ）置 设置 TIM5 的 的 CCER ，开启输入捕获，并设置为上升沿捕获。 。
+TIM5_CCER 寄存器是定时器的开关，并且可以设置输入捕获的边沿。只有 TIM5_CCER
+寄存器使能了输入捕获，我们的外部信号，才能被 TIM5 捕获到，否则一切白搭。同时要设置
+好捕获边沿，才能得到正确的结果。
+5 ）设置 TIM5 的 的 DIER ，使能捕获 和更新中断，并编写中断服务函数
+因为我们要捕获的是高电平信号的脉宽，所以，第一次捕获是上升沿，第二次捕获时下降
+沿，必须在捕获上升沿之后，设置捕获边沿为下降沿，同时，如果脉宽比较长，那么定时器就
+会溢出，对溢出必须做处理，否则结果就不准了。这两件事，我们都在中断里面做，所以必须
+开启捕获中断和更新中断。
+设置了中断必须编写中断函数，否则可能导致死机。我们需要在中断函数里面完成数据处
+理和捕获设置等关键操作，从而实现高电平脉宽统计。
+6 ）设置 TIM5 的 的 CR1 ，使能定时器
+最后，必须打开定时器的计数器开关，通过设置 TIM5_CR1 的最低位为 1，启动 TIM5 的
+计数器，开始输入捕获。
+通过以上 6 步设置，定时器 5 的通道 1 就可以开始输入捕获了，同时因为还用到了串口输
+出结果，所以还需要配置一下串口。
+
+先打开之前的工程，然后我们在上一章的
+基础上，在 timer.c 里面加入如下代码：
+</pre>
+
+
+<img src="../../src/img/singlechip/stm-catch-4.png">
+<img src="../../src/img/singlechip/stm-catch-5.png">
+<img src="../../src/img/singlechip/stm-catch-6.png">
+<img src="../../src/img/singlechip/stm-catch-7.png">
+<pre>此部分代码包含 2 个函数，其中 TIM5_Cap_Init 函数用于 TIM5 通道 1 的输入捕获设置，
+其设置和我们上面讲的步骤是一样的，这里就不多说，重点来看看第二个函数。
+TIM5_IRQHandler 是 TIM5 的中断服务函数，该函数用到了两个全局变量，用于辅助实现
+高电平捕获。其中 TIM5CH1_CAPTURE_STA，是用来记录捕获状态，该变量类似我们在 usart.c
+里面自行定义的 USART_RX_STA 寄存器(其实就是个变量，只是我们把它当成一个寄存器那样
+来使用)。TIM5CH1_CAPTURE_STA 各位描述如表 15.3.1 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-catch-8.png">
+<pre>另外一个变量 TIM5CH1_CAPTURE_VAL，则用来记录捕获到下降沿的时候，TIM5_CNT
+的值。
+现在我们来介绍一下，捕获高电平脉宽的思路：首先，设置 TIM5_CH1 捕获上升沿，这在
+TIM5_Cap_Init 函数执行的时候就设置好了，然后等待上升沿中断到来，当捕获到上升沿中断，
+此时如果 TIM5CH1_CAPTURE_STA 的第 6 位为 0，则表示还没有捕获到新的上升沿，就先把
+TIM5CH1_CAPTURE_STA、TIM5CH1_CAPTURE_VAL 和 TIM5->CNT 等清零，然后再设置
+TIM5CH1_CAPTURE_STA 的第 6 位为 1，标记捕获到高电平，最后设置为下降沿捕获，等待
+下降沿到来。如果等待下降沿到来期间，定时器发生了溢出（对 32 位定时器来说，很难溢出），
+就在 TIM5CH1_CAPTURE_STA 里面对溢出次数进行计数，当最大溢出次数来到的时候，就强
+制标记捕获完成（虽然此时还没有捕获到下降沿）。当下降沿到来的时候，先设置
+TIM5CH1_CAPTURE_STA 的第 7 位为 1，标记成功捕获一次高电平，然后读取此时的定时器
+值到 TIM5CH1_CAPTURE_VAL 里面，最后设置为上升沿捕获，回到初始状态。
+这样，我们就完成一次高电平捕获了，只要 TIM5CH1_CAPTURE_STA 的第 7 位一直为 1，
+那么就不会进行第二次捕获，我们在main函数处理完捕获数据后，将TIM5CH1_CAPTURE_STA
+置零，就可以开启第二次捕获
+接着我们修改 timer.h 如下
+</pre>
+
+<img src="../../src/img/singlechip/stm-catch-9.png">
+<img src="../../src/img/singlechip/stm-catch-10.png">
+<br>修改主程序里面的 main 函数如下：<br>
+
+<img src="../../src/img/singlechip/stm-catch-11.png">
+<pre>该 main 函数是在 PWM 实验的基础上修改来的，我们保留了 PWM 输出，同时通过设置
+TIM5_Cap_Init(0XFFFF,72-1)，将 TIM5_CH1 的捕获计数器设计为 1us 计数一次，并设置重装
+载值为最大，所以我们的捕获时间精度为 1us。
+主函数通过 TIM5CH1_CAPTURE_STA 的第 7 位，来判断有没有成功捕获到一次高电平，
+如果成功捕获，则将高电平时间通过串口输出到电脑。
+按键输入的时候，一般都需要做防抖处理，防止类似的情况干扰正常输入
+</pre>
+
+
+</body>
+</html>

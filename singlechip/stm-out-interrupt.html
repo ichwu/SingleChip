@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>外部中断输入</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">外部中断输入</div>
+
+<pre>要把IO口作为外部中断输入，有以下几个步骤：
+1） ）初始化 IO 口为输入。
+这一步设置你要作为外部中断输入的 IO 口的状态，可以设置为上拉/下拉输入，也可以设置为浮空输入，但浮空的时候外部一定要带上拉，或者下拉电阻。否则可能导致中断不停的触发。在干扰较大的地方，就算使用了上拉/下拉，也建议使用外部上拉/下拉电阻，这样可以一
+定程度防止外部干扰带来的影响。
+2 ）开启 IO 口复用时钟，设置 IO 口与中断线的映射关系。
+STM32 的 IO 口与中断线的对应关系需要配置外部中断配置寄存器 EXTICR，这样我们要先开启复用时钟，然后配置 IO 口与中断线的对应关系。才能把外部中断与中断线连接起来。
+3 ）开启与该 IO 口相 对的线上中断/ 事件，设置触发条件。
+这一步，我们要配置中断产生的条件，STM32 可以配置成上升沿触发，下降沿触发，或者任意电平变化触发，但是不能配置成高电平触发和低电平触发。这里根据自己的实际情况来配置，同时要开启中断线上的中断。这里需要注意的是：如果使用外部中断，并设置该中断的 EMR
+位的话，会引起软件仿真不能跳到中断，而硬件上是可以的。而不设置 EMR，软件仿真就可以进入中断服务函数，并且硬件上也是可以的。建议不要配置 EMR 位。
+4 ）配置中断分组（NVIC ），并使能中断。
+这一步，我们就是配置中断的分组，以及使能，对 STM32 的中断来说，只有配置了 NVIC的设置，并开启才能被执行，否则是不会执行到中断服务函数里面去的。关于 NVIC 的详细介绍，请参考 5.2.6 节。
+5 ）编写中断服务函数。
+这是中断设置的最后一步，中断服务函数，是必不可少的，如果在代码里面开启了中断，但是没编写中断服务函数，就可能引起硬件错误，从而导致程序崩溃！所以在开启了某个中断后，一定要记得为该中断编写服务函数。在中断服务函数里面编写你要执行的中断后的操作。
+通过以上几个步骤的设置，我们就可以正常使用外部中断了。
+
+
+本章，我们要实现同第八章差不多的功能，但是这里我们使用的是中断来检测按键，还是WK_UP 控制蜂鸣器，按一次叫，再按一次停；KEY2 控制 DS0，按一次亮，再按一次灭；KEY1控制 DS1，效果同 KEY2；KEY0 则同时控制 DS0 和 DS1，按一次，他们的状态就翻转一次。
+</pre>
+<p>exit.c</p>
+
+<img src="../../src/img/singlechip/stm-out-interrupt-1.png">
+<img src="../../src/img/singlechip/stm-out-interrupt-2.png">
+<img src="../../src/img/singlechip/stm-out-interrupt-3.png">
+<pre>exti.c 文件总共包含 5 个函数。
+一个是外部中断初始化函数 void EXTIX_Init(void)，另外 4个都是中断服务函数。
+void EXTI0_IRQHandler(void)是外部中断 0 的服务函数，负责 KEY_UP按键的中断检测；
+void EXTI2_IRQHandler(void)是外部中断 2 的服务函数，负责 KEY2 按键的中断检测； 
+void EXTI3IRQHandler(void)是外部中断 3 的服务函数，负责 KEY1 按键的中断检测； 
+void EXTI4_IRQHandler(void)是外部中断 4 的服务函数，负责 KEY0 按键的中断检测； 
+下面我们分别介绍这几个函数。
+首先是外部中断初始化函数 void EXTIX_Init(void)，该函数严格按照我们之前的步骤来初始化外部中断，首先调用 KEY_Init，利用第八章按键初始化函数，来初始化外部中断输入的 IO口， 接着调用了两个函数 Ex_NVIC_Config 和 MY_NVIC_Init，其作用在 5.2.6 节已经介绍了，有不明白的可以翻到前面看看，这里不再多说，不过 EXTI0_IRQn~ EXTI4_IRQn 等是中断向量编号（可以右键 goto definition 查看），在 stm32f10x.h 里面定义的，后续所有的中断设置，都会要设置中断向量编号，将全部采用 stm32f10x.h 里面的定义。另外，需要说明的是因为我们的 KEY_UP 按键是高电平有效的，而 KEY0、KEY1 和 KEY2是低电平有效的，所以我们设置 KEY_UP 为上升沿触发中断，而 KEY0、KEY1 和 KEY2 则设置为下降沿触发。这里我们把所有中断都分配到第二组，把按键的设置成子优先级一样，而抢占优先级不同，这四个按键，KEY0 的优先级最高。
+接下来我们介绍各个按键的中断服务函数，一共 4 个。
+先看 KEY_UP 的中断服务函数 voidEXTI0_IRQHandler(void)，该函数代码比较简单，先延时 10ms 以消抖，再检测 KEY_UP 是否还是为高电平，如果是，则执行此次操作（翻转蜂鸣器控制信号），如果不是，则直接跳过，在最后有一句 EXTI->PR=1&lt;&lt;0;通过该句清除已经发生的中断请求。同样，我们可以发现 KEY0、KEY1 和 KEY2 的中断服务函数和 KEY_UP 按键的十分相似，我们就不逐个介绍了。这里向大家说明一下，STM32F1的外部中断0~4都有单独的中断服务函数，但是从5开始，他们就没有单独的服务函数了，而是多个中断共用一个服务函数，比如外部中断 5~9 的中断服务函数为：void EXTI9_5_IRQHandler(void)，类似的，void EXTI15_10_IRQHandler(void)就是外部中断 10~15 的中断服务函数。另外，STM32F1 所有中断服务函数的名字，都已经在startup_stm32f10x_hd.s 里面定义好了，如果有不知道的，去这个文件里面找就可以了。
+</pre>
+
+<p>exit.h</p>
+<img src="../../src/img/singlechip/stm-out-interrupt-4.png">
+<img src="../../src/img/singlechip/stm-out-interrupt-5.png">
+
+<br>此时可以通过按下 KEY0、KEY1、KEY2 和KEY_UP 来观察 DS0、DS1 以及蜂鸣器是否跟着按键的变化而变化。
+
+
+</body>
+</html>

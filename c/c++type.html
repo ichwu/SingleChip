@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>C++ 数据类型</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/c.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">C++ 数据类型</div>
+<pre><code class="language-html line-numbers">不太懂：不同类型取模 
+++I   --I
+注意： 无符号和有符号相乘 通常将有符号转为无符号再相乘
+
+C++  to 算术类型 空类型
+算术类型 to 整型  浮点型
+整型 to bool and char
+
+bool        none
+char         8bit
+wchar_t       16bit         用于确保可以存放机器最大扩展字符集中任一字符
+char16_t      16bit         Unicode
+char32_t      32bit         Unicode
+short             16bit
+int                  16bit 
+long                32bit
+long long       64bit
+float                32.6
+double            64.10
+long double    .10
+
+
+unsigned char c = -1;  // c is 255
+char c = 256;   // c is unkonw
+
+	• unsigned char should be 0 ~ 255  total 256  so (-1)%256 = 255
+
+unsigned int I = 10;
+int n = -42
+n + n = -84
+I + n = 4294967264
+
+
+如42 为字面常量 int为最小十进制字面常量 即short非字面常量类型
+-42为字面常量int的42的取反值
+默认浮点数的字面常量为double
+还有字符和字符串字面常量
+字符串即为字符数组 字符串的字面值的实际长度比内容多1 即'\0' 
+
+转义字符：\t  \"  \'  \? \\ \r  \n
+\后也可接八进制和十六进制数字
+使用前缀和后缀可以改变整型 浮点型 字符型的默认字面常量类型 如
+前缀
+u      char16_t     Unicode 16 字符
+U      char32_t    Unicode 32 字符
+L       wchar_t     宽字符
+u8     char            UTF-8(仅用于字符串字面常量）
+后缀
+u or U    unsigned 
+l or L        long
+ll or LL      long long
+浮点后缀
+f or F          float
+l or L           double
+
+对于一个整型字面常量 我们可以单独指定其是否带符号和占用空间多少
+true和false是bool的字面常量
+nullptr是指针的字面常量
+</code></pre>
+
+</body>
+</html>

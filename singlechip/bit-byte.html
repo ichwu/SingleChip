@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>bit byte...</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">bit byte K M G</div>
+<pre><code class="language-html line-numbers">字节是由8个位所组成，可代表一个字符(A~Z)、数字(0~9)、或符号(,.?!%&+-*/)，是内存储存数据的基本单位。
+1 byte = 8 bit 
+1 KB = 1024 bytes
+1 MB = 1024 KB 
+1 GB = 1024 MB 
+
+位：“位(bit)”是电子计算机中最小的数据单位。每一位的状态只能是0或1。 
+
+　　字节：8个二进制位构成1个“字节(Byte)”，它是存储空间的基本计量单位。1个字节可以储存1个英文字母或者半个汉字，换句话说，1个汉字占据2个字节的存储空间。 
+
+　　字：“字”由若干个字节构成，字的位数叫做字长，不同档次的机器有不同的字长。例如一台8位机，它的1个字就等于1个字节，字长为8位。如果是一台16位机，那么，它的1个字就由2个字节构成，字长为16位。字是计算机进行数据处理和运算的单位。 
+
+　　KB：在一般的计量单位中，通常K表示1000。例如：1公里= 1000米，经常被写为1km；1公斤=1000克，写为1kg。同样K在二进制中也有类似的含义。只是这时K表示1024，也就是2的10次 方。1KB表示1K个Byte，也就是1024个字节。 
+
+　　MB：计量单位中的M(兆)是10的6次方，见到M自然想起要在该数值的后边续上六个0，即扩大一百万倍。在二进制中，MB也表示到了百万级的数量级，但1MB不正好等于1000000字节，而是1048576字节，即 1MB = 2E+20 Bytes = 1048576Bytes。
+计算机系统中的数据的计量单位。
+
+在标准10进制公制度量系统中，倍率关系如下所示
+
+kilo (k)* = 10 ^ 3 = 1,000 thousand 千
+mega (M) = 10 ^ 6 = 1,000,000 million 百万
+giga (G) = 10 ^ 9 = 1,000,000,000 billion 十亿
+tera (T) = 10 ^ 12 = 1,000,000,000,000 trillion 万亿
+* 在公制系统中， "k" 或者 "kilo" 前缀只使用小写字母
+
+在计算机/通讯行业中，计算数据传送速度也使用每秒传送公制数据量来计算
+
+1 bit (b) = 0 or 1 = one binary digit 一个二进制位元
+1 kilobit(kb)=10^3 bits = 1,000 bits 一千位元
+1 Megabit(Mb)=10^6 bits = 1,000,000 bits 一百万位元
+1 Gigabit(Gb)=10^9 bits = 1,000,000,000 bits 一万亿位元
+根据进制规定，传送速度可以有两种表示方法 bps 和 Bps,但是他们是有严格区别。Bps中的 B 使用的是二进制系统中的Byte字节 ,bps中的 b 是十进制系统中的位元。
+
+在我们常说的56K拨号，100M局域网都是bps计量，当用于软件下载时，下载工具一般又以Bps计算，所以它们之间有 8 bit=1 Byte 的换算关系，那么56Kbps拨号极限下载速度是 56Kbps/8=7KBps 每秒下载7K字节 。
+
+在数据存储，容量计算中，一般又结合公制的进制和二进制的数据计算方法来计算
+（二进制）
+
+1 byte (B) = 8 bits (b) 字节=8个二进制位
+1 Kilobyte(K/KB)=2^10 bytes=1,024 bytes 千字节
+1 Megabyte(M/MB)=2^20 bytes=1,048,576 bytes 兆字节
+1 Gigabyte(G/GB)=2^30 bytes=1,073,741,824 bytes 千兆字节
+1 Terabyte(T/TB)=2^40 bytes=1,099,511,627,776 bytes吉字节
+一些存储器厂家特别是硬盘厂家就更紧密结合十进制来计算，这就是为什么操作系统显示的容量与厂家标示的容量有些一些差异的原因
+（十进制）
+
+1 byte (B) = 8 bits (b)
+1 Kilobyte (K / KB) = 10^3 bytes = 1,000 bytes
+1 Megabyte (M / MB) = 10^6 bytes = 1,000,000 bytes
+1 Gigabyte (G / GB) = 10^9 bytes = 1,000,000,000 bytes
+1 Terabyte (T / TB) = 10^12 bytes = 1,000,000,000,000 bytes
+</code></pre>
+
+</body>
+</html>

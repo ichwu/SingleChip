@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>I2C</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">I2C</div>
+<pre><code class="language-html line-numbers">1、EEPROM 写数据流程
+第一步，首先是 I 2 C 的起始信号，接着跟上首字节，也就是我们前边讲的 I 2 C 的器件地址，并且在读写方向上选择“写”操作。
+第二步，发送数据的存储地址。24C02 一共 256 个字节的存储空间，地址从 0x00～0xFF，我们想把数据存储在哪个位置，此刻写的就是哪个地址。
+第三步，发送要存储的数据第一个字节、第二个字节„„注意在写数据的过程中，EEPROM 每个字节都会回应一个“应答位 0”，来告诉我们写 EEPROM 数据成功，如果没有回应答位，说明写入不成功。
+             在写数据的过程中，每成功写入一个字节，EEPROM 存储空间的地址就会自动加 1，当加到 0xFF 后，再写一个字节，地址会溢出又变成了 0x00。
+2、EEPROM 读数据流程
+第一步，首先是 I 2 C 的起始信号，接着跟上首字节，也就是我们前边讲的 I 2 C 的器件地址，并且在读写方向上选择“写”操作。
+             24C02 一共有 256 个地址，我们选择写操作，是为了把所要读的数据的存储地址先写进去，告诉 EEPROM 我们要读取哪个地址的数据。
+第二步，发送要读取的数据的地址，注意是地址而非存在 EEPROM 中的数据，
+第三步，重新发送 I 2 C 起始信号和器件地址，并且在方向位选择“读”操作。
+这三步当中，每一个字节实际上都是在“写”，所以每一个字节 EEPROM 都会回应一个“应答位 0”。
+第四步，读取从器件发回的数据，读一个字节，如果还想继续读下一个字节，就发送一个“应答位 ACK(0)”，
+              如果不想读了，那就发送一个“非应答位 NAK(1)”。
+              和写操作规则一样，我们每读一个字节，地址会自动加 1，
+              那如果我们想继续往下读，给 EEPROM 一个 ACK(0)低电平，那再继续给 SCL 完整的时序，EEPROM 会继续往外送数据。
+              如果我们不想读了，要告诉 EEPROM 不要数据了，那我们直接给一个 NAK(1)高电平即可
+要点：A、在本例中单片机是主机，24C02 是从机；
+          B、无论是读是写，SCL 始终都是由主机控制的；
+          C、写的时候应答信号由从机给出，表示从机是否正确接收了数据；
+          D、读的时候应答信号则由主机给出，表示是否继续读下去
+</code></pre>
+<img src="../../src/img/singlechip/i2c-1.png">
+<img src="../../src/img/singlechip/i2c-2.png">
+<img src="../../src/img/singlechip/i2c-3.png">
+<pre><code class="language-html line-numbers">I2C 总线的主要特点是接口方式简单，两条线可以挂多个参与通信的器件，
+即多机模式，而且任何一个器件都可以作为主机，当然同一时刻只能有一个主机
+
+I2C 属于同步通信，SCL 时钟线负责收发双方的时钟节拍，SDA 数据线负责传输数据。
+I2C 的发送方和接收方都以 SCL 这个时钟节拍为基准进行数据的发送和接收
+
+在硬件上，I 2 C 总线是由时钟总线 SCL 和数据总线 SDA 两条线构成
+连接到总线上的所有器件的 SCL 都连到一起，所有 SDA 都连到一起
+
+I 2 C 总线是开漏引脚并联的结构，因此我们外部要添加上拉电阻。
+对于开漏电路外部加上拉电阻，就组成了线“与”的关系
+总线上线“与”的关系就是说，所有接入的器件保持高电平，这条线才是高电平，而任何一个器件输出一个低电平，那这条线就会保持低电平
+
+UART 每个字节中，都有一个起始位、8 个数据位、1 位停止位。
+而 I 2 C 分为起始信号、数据传输部分、停止信号
+其中数据传输部分，可以一次通信过程传输很多个字节，字节数是不受限制的，
+而每个字节的数据最后也跟了一位，这一位叫做应答位，通常用 ACK 
+
+起始信号：UART 通信是从一直持续的高电平出现一个低电平标志起始位；而 I 2 C 通信的起始信号的定义是 SCL 为高电平期间，SDA 由高电平向低电平变化产生一个下降沿，表示起始信号
+
+数据传输：首先，UART 是低位在前，高位在后；而 I 2 C 通信是高位在前，低位在后。
+其次，UART 通信数据位是固定长度，波特率分之一，一位一位固定时间发送完毕就可以了。
+而 I 2 C 没有固定波特率，但是有时序的要求，要求当 SCL 在低电平的时候，SDA 允许变化，
+也就是说，发送方必须先保持 SCL 是低电平，才可以改变数据线 SDA，输出要发送的当前数据的一位；而当 SCL 在高电平的时候，SDA 绝对不可以变化，因为这个时候，接收方要来读取当前 SDA 的电平信号是 0 还是 1，因此要保证 SDA 的稳定，如图 14-3 中的每一位数
+据的变化，都是在 SCL 的低电平位置。8 位数据位后边跟着的是一位应答位
+
+停止信号：UART 通信的停止位是一位固定的高电平信号；而 I 2 C 通信停止信号的定义是 SCL 为高电平期间，SDA 由低电平向高电平变化产生一个上升沿，表示结束信号
+
+I 2 C 寻址模式
+ I 2 C 通信在字节级的传输中，也有固定的时序要求。I 2 C 通信的起始信号(Start)后，首先要发送一个从机的地址，这个地址一共有 7位，紧跟着的第 8 位是数据方向位(R/W)，“0”表示接下来要发送数据（写），‘“1”表示接下来是请求数据（读）
+
+当我们发送完了这 7 位地址和 1 位方向后，如果发送的这个地址确实存在，那么这个地址的
+器件应该回应一个 ACK（拉低 SDA 即输出“0”），如果不存在，就没“人”回应 ACK（SDA
+将保持高电平即“1”）。
+
+板子上的 EEPROM 器件型号是 24C02，在 24C02 的数据手册 3.6 节中可查到，24C02
+的 7 位地址中，其中高 4 位是固定的 0b1010，而低 3 位的地址取决于具体电路的设计,由芯
+片上的 A2、A1、A0 这 3 个引脚的实际电平决定
+
+库函数_nop_()可以进行精确延时，一个_nop_()的时间就是一
+个机器周期，这个库函数包含在 intrins.h 这个文件中，如果要使用这个库函数，只需要在程
+序最开始，和包含 reg52.h 一样，include&lt;intrins.h>之后，程序中就可以使用这个库函数了
+
+I 2 C 通信分为低速模式 100kbit/s、快速模式 400kbit/s 和高速模式
+3.4Mbit/s。因为所有的 I 2 C 器件都支持低速，但却未必支持另外两种速度，所以作为通用的
+I 2 C 程序我们选择 100k 这个速率来实现，也就是说实际程序产生的时序必须小于等于 100k
+的时序参数，很明显也就是要求 SCL 的高低电平持续时间都不短于 5us，因此我们在时序函
+数中通过插入 I2CDelay()这个总线延时函数（它实际上就是 4 个 NOP 指令，用 define 在文件
+开头做了定义），加上改变 SCL 值语句本身占用的至少一个周期，来达到这个速度限制。如
+果以后需要提高速度，那么只需要减小这里的总线延时时间即可
+
+100000  bit/s  
+1bit   1/100000s       10us   
+时间单位   1 s = 103 ms = 106 us = 109 ns = 1012 ps
+电容单位   1 F=106 uF=106 nF=1012 pF
+12/11059200  s    1us 机器周期
+在计算机/通讯行业中，计算数据传送速度也使用每秒传送公制数据量来计算
+1 bit (b) = 0 or 1 = one binary digit 一个二进制位元               bit    s
+1 kilobit(kb)=10^3 bits = 1,000 bits 一千位元                         bit    ms
+1 Megabit(Mb)=10^6 bits = 1,000,000 bits 一百万位元           bit   us
+1 Gigabit(Gb)=10^9 bits = 1,000,000,000 bits 一万亿位元       bit   ns
+
+常需要改变或更新，掉电之后数据还不能丢失 一般都是使用 EEPROM 来保存数据
+一般情况下，EEPROM 拥有 30 万到 100 万次的寿命，也就是它可以反复写入 30-100 万次，而读取次数是无限的
+</code></pre>
+
+
+</body>
+</html>

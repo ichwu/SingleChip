@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>C 字符串</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/c.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">C 字符串与格式化输入输出</div>
+<pre>字符串是一个或多个字符的序列
+字符串被存储在char类型的数组中
+数组由连续的存储单元组成
+数组的末尾字符是\0 （空字符null character）代表字符串的结束
+   其ACSII码值为0
+字符串的转换说明为%s
+用scanf（）来获取字符串时 它在遇到第一个空白（空格、制表符或换行符）时就不再读取输入 即scanf（）只会读取字符串中的第一个单词，而不是一整句
+函数fget（）用于读取一般字符串
+
+C把函数库中相关的函数归为一类，并为每类函数提供一个头文件 如
+stdio.h文件包含printf（）和scanf（）
+string.h文件包含多个字符串相关的函数原型（如strlen（））之前用strings.h
+strlen（）计算字符串中的字符数 包括空格和标点符号
+sizeof（）运算符给出的数更大 包含末尾不可见的空字符
+C99和C11标准专门为sizeof运算符的返回类型添加了%zd说明 %zd对于strlen（）同样适用
+
+
+声明符号常量
+	1：声明一个变量 然后将该变量设置为所需的常量
+	2：使用C预处理器 #define PI 3.14159      NAME常用大写
+		Value的值除了数字 还可以是字符 或 字符串 前者用单引号 后者用双引号
+	3：使用const关键词
+	     C90标准新增了const 用于限定一个变量为只读 
+		如 const MONTHS= 12;
+明示常量
+	limits.h和float.h分别提供了整数类型和浮点类型大小限制相关的详细信息
+每个头文件都定义了一系列供实现使用的明示常量
+</pre>
+<img src="../../src/img/c-string1.png">
+
+<pre>printf（）函数
+	不同类型数据在内存中的存储方式有些一样有些不一样
+	使用printf（）函数打印数据的指令（转换说明）要与数据类型相匹配
+</pre>
+<img src="../../src/img/c-string2.png">
+
+<pre>printf（）的转换说明修饰符
+	在%和转换字符之间可插入修饰符
+</pre>
+<img src="../../src/img/c-string3.png"> 
+
+<pre>类型的可移植性
+sizeof运算符以字节为单位返回类型或值的大小
+C标准只规定该值是无符号的整数。
+在不同的实现中，它可以是unsigned int 、unsigned long或unsigned long long 因此，如果要使用printf（）显示sizeof表达式 
+根据不同系统 可能使用%u、%lu或%llu
+这意味着要查找当前系统的用法 如果把程序移植到不同系统还有进行修改
+C提供了可移植性更好的类型
+头文件stddef.h（在包含stdio.h时已包含其中）
+把size_t定义成系统使用sizeof返回的类型，这被称为底层类型（underlying type）
+其次，printf（）使用z修饰符表示打印相应的类型。
+同样，C还定义了ptrdiff_t类型和t修饰符来表示系统使用相同的两个地址差值的底层有符号整数类型
+
+float参数的转换
+对于浮点类型 有double和long double的转换说明 却没有float类型的
+因为float类型的参数一般会自动转换为double类型
+</pre>
+<img src="../../src/img/c-string4.png"> 
+
+<p>scanf()的转换说明与修饰符</p>
+<img src="../../src/img/c-scanf1.png"> 
+<img src="../../src/img/c-scanf2.png"> 
+<img src="../../src/img/c-scanf3.png"> 
+
+<pre>scanf（）读取输入
+
+scanf（）读整数
+每次从第1个非空字符才开始读取 读完后（遇到非数字）
+scanf（）把非空数字放回输入 这意味着程序下一次读取输入时 首先读到的是上一次读取丢弃的非数字字符
+如果使用字段宽度 scanf（）会在字段结尾或第1个空白字符处停止读取
+如果第一个非空白字符是A而不是数字，scanf（）将停止读取 并把A放回输入中 不会把值赋给变量
+程序下一次读取 首先读取到A
+如果程序只使用%d转换说明 scanf（）就无法越过A读下一个字符
+如果使用带多个转换说明的scanf（）C规定在第1个出错处停止读取输入
+
+scanf（）读字符串
+scanf（）根据%s转换说明读取一个单词 即不包含空白字符的字符串
+如果使用字域宽度 scanf（）会在字域宽度结尾或第1个非空字符停止读取 
+无法利用字域宽度读取多个单词
+
+scanf（）函数允许把普通字符放在格式字符中
+除空格字符外的普通字符必须与输入字符串严格匹配
+格式字符串中的空白意味着跳过下一项前面的所有空白
+
+除了%c 其他转换说明都会跳过待输入值前面的空白
+在%c前面放一个空格 scanf（）将会从第1个非空白字符开始读取
+
+scanf（）函数返回成功读取的项数
+scanf（）检测到文件结尾时 会返回EOF
+EOF是stdio.h中定义的特殊值 通常用#define指令把EOF定义为-1
+
+printf（）和scanf（）都可以用*修饰符
+ 
+对于printf（）
+如果不想预先指定字域宽度 希望通过程序来指定
+可以用*来代替宽度 但还是要用一个参数告诉函数 字域宽度是多少
+如printf("%*.*d", a, b, c);
+
+对于scanf（）
+把*放在%和转换字符之间 会使得scanf（）跳过相应的输出相
+如scanf("%*d %*d %d", &n);
+</pre>
+
+</body>
+</html>

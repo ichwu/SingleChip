@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>Fat</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">Fat</div>
+
+<img src="../../src/img/singlechip/stm-fat-1.png">
+<pre>其实对我们有用的数据只不过90个字节
+BPB 后面的 422 个字节对我们的意义不大，表中省略
+</pre>
+<img src="../../src/img/singlechip/stm-fat-2.png">
+<img src="../../src/img/singlechip/stm-fat-3.png">
+<pre>DBR的实现代码
+struct FAT32_DBR
+{                                                                  //偏移量
+	unsigned char BS_jmpBoot[3];                 //0      跳转指令
+	unsigned char BS_OEMName[8];             //3      格式化该分区的操作系统名称和版本号
+	unsigned char BPB_BytesPerSec[2];          //11   每扇区字节数
+	unsigned char BPB_SecPerClus[1];           //13   每簇扇区数
+	unsigned char BPB_PsvdSecCnt[2];           //14  保留扇区数
+	unsigned char BPB_NumFATs[1];              //16  此卷FAT表数
+	unsigned char BPB_RootEntCnt[2];          //17   FAT32为0
+	unsigned char BPB_TotSec16[2];              //19   FAT32为0
+	unsigned char BPB_Medea[1];                 //21   存储介质
+	unsigned char BPB_FATSz16[1];              //22    FAT32为0
+	unsigned char BPB_SecPerTrk[2];           //24    磁道扇区数
+	unsigned char BPB_NumHeads[2];          //26   磁头数
+	unsigned char BPB_HiddSec[4];              //28    FAT区前隐藏扇区数
+	unsigned char BPB_TotSec32[4];            //32    该卷总扇区数
+	unsigned char BPB_FATSz32[4];             //36    FAT表扇区数
+	unsigned char BPB_ExtFlags[2];              //40    FAT32特有
+	unsigned char BPB_FSVer[2];                  //42    FAT32特有
+	unsigned char BPB_RootClus[4];             //44   根目录簇号
+	unsigned char FSInfo[2];                          //48   文件系统信息
+	unsigned char BPB_BkBootSec[2];           //50   备份扇区 通常为6
+	unsigned char BPB_Reserved[12];           //52   扩展用
+	unsigned char BS_DrvNum[1];                 //64  -
+	unsigned char BS_Reserved1[1];              //65  -
+	unsigned char BS_BootSig[1];                  //66  -
+	unsigned char BS_VollD[4];                      //67  -
+	unsigned char BS_FilSysType[11];            //71  -
+	unsigned char BS_FilSysType1[[8];           //82  -
+}
+
+读BPB_BytesPerSec
+	((struct FAT32_DBR *)pSector)->BPB_BytesPerSec;                  //unsigned char x[2]
+小端转大端模式
+unsigned long lb2bb(unsigned char *dat, unsigned char len)       //lb2bb(x, 2) = 512
+{
+	unsigned long temp = 0;
+	unsigned long fact = 1;
+	for (i=0; i&lt;len; i++)
+	{
+		temp += dat[i] * fact;
+		fact *= 256;
+	}
+	return temp;
+}
+从 BPB 中读取参数装入到参数表中以备后用的过程就是FAT32 的初始化了
+struct FAT32_Init_Arg
+{
+	unsigned char BPB_Sector_No;          //BPB所在扇区号
+	unsigned long Total_Size;                  //磁盘总容量
+	unsigned long FirstDirClust;              //根目录开始簇
+	unsigned long FirstDataSector;         //文件数据开始扇区号
+	unsigned int BytesPerSector;            //每扇区字节数
+	unsigned int FATsectors;                   //FAT表所占扇区数
+	unsigned int SectorsPerClust;          //每簇扇区数
+	unsigned long FirstFATSector;         //第一个FAT表所在扇区
+	unsigned long FirstDirSector;          //第一个目录所在扇区
+	unsigned long RootDirSectors;       //根目录所占扇区数
+	unsigned long RootDirCount;         //根目录下的目录与文件数
+}
+void FAT32_Init(struct FAT32_Init_Arg *arg)
+{
+	Struct FAT32_BPB *bpb = (struct FAT32_BPB *)(FAT32_Buffer);                 //将数据缓冲区指针转为struct FAT32_BPB型指针
+	arg->BPB_Sector_No = FAT32_FindBPB();                                   //FAT32_FindBPB()可以返回BPB所在的扇区号
+	arg->Total_Size = FAT32_Get_Total_Size();                                //FAT32_Get_Total_Size()可以返回磁盘的总容量， 单位是M
+	arg->FATsectors = lb2bb((bpb->BPB_FATSz32), 4);                  //装入FAT表占用的扇区数到FATsectors中
+	arg->FirstDirClust = lb2bb((bpb->BPB_RootClus), 4);                //装入根目录簇号到FirstDirClust中
+	arg->BytesPerSector = lb2bb((bpb->BPB_BytesPerSec), 2);        // 装入每扇区字节数到BytesPerSector中
+	arg->SectorsPerClust = lb2bb((bpb->BPB_SecPerClus), 1);          //装入每簇扇区数到SectorsPerClust中
+	arg->FirstFATSector = lb2bb((bpb->BPB_RsvdSecCnt), 2)+arg->BPB_Sector_No;         //装入第一个FAT表扇区号到FirstFATSector中
+	arg->RootDirCount = lb2bb((bpb->BPB_RootEntCnt), 2);                      //装入根目录项数到RootDirCount中
+	arg->RootDirSectors = (arg->RootDirCount)*32>>9;                            //装入根目录占用的扇区数到RootDirSectors中
+	arg->FirstDirSector = (arg->FirstFATSector)+(bpb->BPB_NumFATs[0]*(arg->FATsectors);       //装入第一个目录扇区到FirstDirSector中
+	arg->FirstDataSector = (arg->FirstDirSector) +(arg->RootDirSectors);                 //装入第一个数据扇区到FirstDataSector中
+}
+FAT 表是 FAT32 文件系统中用于磁盘数据（文件）索引和定位引进的一种链式结构
+从第一步从 BPB 中提取参数中的FirstFATSector 就可以知道FAT 表所在的扇区号。其实每一个 FAT 表都有另一个与它一模一样的FAT 存在，并且这两个FAT 表是同步的，也就是说对一个FAT 表的操作，同样地，也应该在另一个FAT表进行相同的操作，时刻保证它们内容的一致。这样是为了安全起见，当一个FAT 因为一些原因而遭到破坏的时候，可以从另一个FAT 表进行恢复。</pre>
+
+
+<img src="../../src/img/singlechip/stm-fat-4.png">
+<pre>上图就是一个实际的FAT 表。前 8 个字节“F8 FF FF 0F FF FF FF FF”为FAT32 的 FAT 表头标记，用以表示此处是 FAT 表的开始。后面的数据每四个字节为一个簇项（从第2 簇开始），用以标记此簇的下一个簇号。
+拿我们创建的那个叫TEST.TXT（大小为 20 个字节）的文件来说，如果这个文件的开始簇为第 2 簇的话，那么就到 FAT 表里来查找，看文件是否有下一个簇（如果文件大小大于一个簇的容量，必须会有数据存储到下一个簇，但下一个簇与上一个簇不一定是连续的），可以看到“簇 2”的内容为“FF FF FF0F”，这样的标记就说明这个文件到第2 簇就已经结束了，没有后继的簇，即此文件的大小是小于一个簇的容量的。
+磁盘上最小可寻址存储单元称为扇区，通常每个扇区为512 个字节。
+由于多数文件比扇区大得多，因此如果对一个文件分配最小的存储空间，将使存储器能存储更多数据，这个最小存储空间即称为簇。
+根据存储设备(磁盘、闪卡和硬盘)的容量，簇的大小可以不同以使存储空间得到最有效的应用。
+如果对于容量大的存储定义了比较小的簇的话，就会使 FAT 表的体积很大，从而造成数据的冗余和效率的下降。
+需要指出的是，簇作为 FAT32 进行数据存储的最小单位，内部扇区是不能进一步细分的，即使一个文件的数据写到一个簇中后，簇中还有容量的剩余（里部扇区没有写满），哪怕这个簇只写了一个字节，其它文件的数据也是不能接在后面继续数据的，而只能另外找没有被占用的簇。
+我们按照初始化参数表中的 SectorsPerClust 可以知道一个簇中的扇区数，笔者的 SD 卡实测簇大小为 4 个扇区，按照上面的说法，TEST.TXT 这样
+一个只有 20 个字节的文件，也会占用一个簇的容量，让我们在Windows 里看看它的实际占用空间的情况。如下图：</pre>
+<img src="../../src/img/singlechip/stm-fat-5.png">
+<pre>现在我们再创建一个文件，使它占用26 个簇，如下</pre>
+<img src="../../src/img/singlechip/stm-fat-6.png">
+<img src="../../src/img/singlechip/stm-fat-7.png">
+
+<pre>可以看到图中红色标记的就是文件所占用的26 个簇。从第 4 簇开始，簇项 4 的内容为“05 00 00 00”（小端模式），说明下一个簇为第5 簇，而簇项 5的内容为“06 00 00 00”,说明下一个簇为第 6 簇……依此类推，直到内容为“FF FF FF 0F”，说明无后继簇，文件数据到此结束。FAT 表中的链式存储结构已经非常明显。</pre>
+<img src="../../src/img/singlechip/stm-fat-8.png">
+<pre>从上面可以看到，当数据结束于某一簇时，FAT32 就用“FF FF FF 0F”来对其进行标记。其实还有其实的标记以表达其它的簇属性，如“00 00 00 00 ”表示未分配的簇，“FF FF FF F7”表示坏簇等。给出一个簇号，计算出它的后继簇号，是实现FAT32 的重点，实现如下：
+unsigned long FAT32_GetNextCluster(unsigned long LastCluster)
+{
+	unsigned long temp;
+	struct FAT32_FAT *pFAT;
+	struct FAT32_FAT_Item *pFAT_Item;
+	temp = ((LastCluster/128) + Init_Arg.FirstFATSector);     //计算给定簇号对应的簇项的扇区号
+	FAT32_ReadSector(temp, FAT32_Buffer;
+	pFAT = (struct FAT32_FAT *)FAT32_Buffer;
+	pFAT_Item = &((pFAT->Items)[LastCluster%128]);         //在算出的扇区中提取簇项
+	return lb2bb(pFAT_Item, 4);
+}
+那么 FAT 表有多大呢？FAT 表中每四个字节表示一个簇，所以 FAT 表的大小由实际的簇数来决定。从这里也可以看出，如果簇过大，就会则 FAT 表
+比较小，但会造成空间的浪费，而如果簇过小，可以减小空间的浪费，但会使FAT 表变得臃肿。FAT 表的大小也可以从 BPB 参数 FATsectors 读出。从上面的 BPB 图可以得知笔者的 SD 卡的 FAT 表大小为 958 个扇区（“BE 03 0000”的大端表示）。如果这958 个扇区每四个字节都表示一个簇项，则它可以表示（958*512/4）­2= 122622 个簇（减去 2 是因为有 8 个字节的 FAT 表头标识。
+看看我们计算的是否正确呢，下面是Winhex 计算出来的簇数：
+</pre>
+<img src="../../src/img/singlechip/stm-fat-9.png">
+<pre>完上面对 FAT 表的讲解中，你可能会问：一个文件数据的首簇号怎样来确定呢？只有知道了一个文件数据的首簇号才能继续查找下一簇数据的位
+置，直到数据结束。下面将要讲到的“根目录区”就可以由一个文件的文件名来查到它的首簇。
+4）根目录区
+在 FAT32 中其实已经把文件的概念进行扩展，目录同样也是文件，从根目录的地位与其它目录是相同的，因此根目录也被看作是文件。既然是文件就会有文件名，根目录的名称就是磁盘的卷标。如笔者的SD 卡在格式会时设置卷标为 znmcu，则根目录的名称就为ZNMCU，如下图：</pre>
+<img src="../../src/img/singlechip/stm-fat-10.png">
+<img src="../../src/img/singlechip/stm-fat-11.png">
+<img src="../../src/img/singlechip/stm-fat-12.png">
+<pre>根目录区所在扇区可从 BPB 参数 FirstDirSector 获取，从 BPB 图得FirstDirSector=FirstFATSector+BPB_NumFATs*FATsectors=2053。根目录区的初始大小为一个簇，实际的内容如下：</pre>
+<img src="../../src/img/singlechip/stm-fat-13.png">
+<pre>图中的记录 1 描述根目录，前八个字节为文件名“ZNMCU ”（长度小于 8 的部分用空格符补齐），下面的三个字节为扩展名“ ”（ 长度小于 3
+的部分用空格符补齐），08 表示此文件为卷标，开始簇高字节为00 00，低字节为 00 00，开始簇为 0，文件长度为 0。
+记录 2 描述 TEST.TXT 文件，文件名为“TEST ”，扩展名为“TXT”，20 表示此文件为归档，开始簇为3（“00 00 00 03”），长度为 20。
+记录3 描述BIGTEST.TXT 文件，文件名为“BIGTES~1”，扩展名为“TXT”，
+
+12 1 系统保留
+13 1 创建时间的 10 毫秒位
+14~15 2 文件创建时间
+16~17 2 文件创建日期
+18~19 2 文件最后访问日期
+20~21 2 文件起始簇号的高 16 位
+22~23 2 文件的最近修改时间
+24~25 2 文件的最近修改日期
+26~27 2 文件起始簇号的低 16 位
+28~31 4 表示文件的长度
+开始簇为 4，长度为 5200 字节（00 00 CB 20）。可以看到 FAT32 中的文件名都以大写字母表示，长度不足的部分用空格符补齐，所以我们要读取的文件 TEST.TXT 就变成了“TEST .TXT”，这将有助于文件名的匹配，我们不用去处理不等长文件名所带来的麻烦。另外，还会发现长度过长的部分会被~1 所替换，如果替换后有文件与之重名，则~后面的数字将增加为2。
+</pre>
+<img src="../../src/img/singlechip/stm-fat-14.png">
+<pre>文件目录项结构的实现如下
+
+struct direntry
+{
+	unsigned char deName[8];           //文件名
+	unsigned char deExtension[3];     //扩展名
+	unsigned char deAttributes;         //文件属性
+	unsigned char deLowerCase;       //系统保留
+	unsigned char deCHundredth;    //创建时间的十毫秒位
+	unsigned char deCTime[2];          //文件创建时间
+	unsigned char deCDate[2];          //文件创建日期
+	unsigned char deADate[2];          //文件最后访问时间
+	unsigned char deHighClust[2];    //文件起始簇的高十六位
+	unsigned char deMTime[2];        //文件最近修改时间
+	unsigned char deMDate[2];        //文件最近修改日期
+	unsigned char deLowCluster[2]; //文件起始簇的低十六位
+	unsigned char deFileSize[4];       //文件长度
+}
+我们最终要实现的是对TEST.TXT 文件的读取，须要作到给定文件名后，可以得到相应文件的首簇。主要的思想就是对根目录区中（本实例只针对根目录中的文件进行读取，至于多级子目录的实现，只须要进行多次首簇定位）的记录进行扫描，对记录中的文件名进行匹配。具体的实现如下：
+struct FileInfoStruct *FAT32_OpenFile(char *filepath)
+{
+	unsigned char depth =0;
+	unsigned char I, index = 1;
+	unsigend long iFileSec, iCurFileSec, iFile;
+	struct direntry *pFile;
+	iCurFileSec = Int_Arg, FirstDirSector;
+	for (iFileSec = iCurFileSec; 
+		iFileSec&lt;iCurFileSec+(Init_Arg,.SectorsPerClust);
+		iFileSec++);
+	{
+		FAT32_ReadSector(iFileSec, FAT32_Buffer);
+		for (iFile = 0;
+			iFile&lt;Init_Arg.ByetsPerSector;
+			iFile+=sizeof(struct dirntry))                //对记录逐个扫描
+		      {
+			       pFile = ((struct direntry *)(FAT32_Buffer+iFile));
+			       if(FAT32_CompareName(filepath+index, pFile->deName))      //对文件名进行匹配
+				{
+					FileInfo,LFileSeze = lb2bb(pFile->deFileSize, 4);
+					strcpy(FileInfo.FileName, filepath+index);
+					FileInfo.FileStartCluster = lb2bb(pFile->deLowCluster, 2)
+											  +lb2bb(pFile->deHeghClust, 2) * 65536;
+					FileInfo.FileCurCluster = FileInfo.FileStartcluster;
+					FileInfo,lFileNextCluster = 
+										FAT32_GetNextCluster(FileInfo.FileCuster);
+					FileInfo.FileOffset  = 0;
+					return &FileInfo;
+				}
+		}
+	}
+}
+这个函数在找到目标文件后，会将此文件的一些参数信息装入到文件结构中，为以后的文件读取作好准备。文件结构如下
+struct FileInfoStruct 
+{
+	unsigned char FileName[12];                //文件名
+	unsigned char FileStartCluster;             //文件首簇号
+	unsigned long FileCurCluster;              //文件当前簇号
+	unsigned long FileNextCluster;            //下一簇号
+	unsigned long FileSize;                        //文件大小
+	unsigned char FileAttr;                        //文件属性
+	unsigned short FileCreateTime;          //文件建立时间
+	unsigned short FileCreateDate;          //文件建立日期
+	unsigned short FileMTime;                 //文件修改时间
+	unsigned short FileMDate;                 //文件修改日期
+	unsigned long FileSector;                  //文件当前扇区号
+	unsigned int FileOffset;                     //文件偏移量
+}
+通过对根目录区的扫描，可以得到 TEST.TXT 首簇为 3，下面就可能以它为起点，来读取文件内容了。
+5）文件读取
+通过上面的讲解，我们已经得到了TEST.TXT 的首簇。现在到作的就是到相应的簇及其后继簇去读取数据了。一直都在说簇，比如第2 簇、第 3 簇等等。那这些簇在磁盘的什么位置呢？从FAT 表中可以看到，簇号是从 2 开始的，而第 2 簇的位置就在第二个 FAT 表（一共有两个 FAT 表，它们即时同步）的后面，即根目录所在的簇就为第2 簇。下面就为本篇教程的最后部分，读TEST.TXT 文件的内容。主要思想是这样的：在已各文件首簇的前提下，从首簇开始，对于文件满一簇的数据，就把整簇数据读出（其实还是按扇区来读，只是一次性读出所有扇区），对于文件结尾不足一簇的部分，计算它占用了簇内几个扇区，把占用整个扇区部分直接按扇区读出，而最后很有可能是零散的若干个字节，不足一个扇区，即占用了最后一个此文件最后一个扇区的一部分，对于这部分我们也要将整个扇区读出，截选中有效的数据部分。文件信息结构中的FileOffset 参数将时刻记录文件读到的位置，它与文件大小的差就是还未读取的数据数量。
+具体的实现如下：
+void FAT32_ReadFile(struct FileInfoStruct *pstru,unsigned long len)
+{
+          unsigned long Sub=pstru­>FileSize­pstru­>FileOffset;
+          unsigned long iSectorInCluster=0;
+          unsigned long i=0;
+          while(pstru­>FileNextCluster!=0x0fffffff)        // 如果 FAT 中的簇项为 0x0fffffff ，说明无后继簇
+          {
+                     for(iSectorInCluster=0;
+                     iSectorInCluster&lt;Init_Arg.SectorsPerClust;
+                     iSectorInCluster++)                      // 读出整簇数据
+                    {
+                                FAT32_ReadSector((((pstru­>FileCurCluster)­2)
+                                                               *(Init_Arg.SectorsPerClust))
+                                                               +Init_Arg.FirstDataSector
+                                                               +(iSectorInCluster),FAT32_Buffer);
+                                pstru­>FileOffset+=Init_Arg.BytesPerSector;
+                                Sub=pstru­>FileSize­pstru­>FileOffset;
+                                for(i=0;i&lt;Init_Arg.BytesPerSector;i++)
+                                {
+                                              send(FAT32_Buffer[i]); // 将数据发送到终端上显示
+                                }
+                   }
+                   pstru­>FileCurCluster=pstru­>FileNextCluster;
+                   pstru­>FileNextCluster=FAT32_GetNextCluster(pstru­>FileCurCluster);
+                   // 这里是 FAT 簇链的传递
+         }
+         iSectorInCluster=0;
+         while(Sub>=Init_Arg.BytesPerSector)
+        // 处理不足一簇，而足扇区的数据
+        {
+                   FAT32_ReadSector((((pstru­>FileCurCluster)­2)
+                                                *(Init_Arg.SectorsPerClust))
+                                                +Init_Arg.FirstDataSector
+                                                +(iSectorInCluster++),FAT32_Buffer);
+                   pstru­>FileOffset+=Init_Arg.BytesPerSector;
+                   Sub=pstru­>FileSize­pstru­>FileOffset;
+                   for(i=0;i&lt;Init_Arg.BytesPerSector;i++)
+                   {
+                              send(FAT32_Buffer[i]);
+                    }
+        }
+        FAT32_ReadSector((((pstru­>FileCurCluster)­2)
+                                     *(Init_Arg.SectorsPerClust))
+                                     +Init_Arg.FirstDataSector
+                                     +(iSectorInCluster),FAT32_Buffer);
+                                     // 读取最后一个扇区
+        for(i=0;i&lt;Sub;i++) //Sub 为最后剩余的字节数
+        {
+                      send(FAT32_Buffer[i]);
+        }
+}
+
+     
+）最终的实现
+在主函数中对磁盘驱动及以上函数进行正确合理的调用，就可以达到我
+们要实现的效果了。主函数如下：
+#include &lt;reg51.h>
+#include &lt;string.h>
+#include &lt;stdio.h>
+#include &lt;math.h>
+#include &lt;uart.h>
+#include &lt;fat32.h>
+void main()
+{
+  
+	delay(10000);
+	UART_Init(); // 串口初始化，用以向调试终端发送数据
+	send_s("yahoo!!!"); // 发送一个测试字符串
+	MMC_Init(); //SD 卡初始化
+	delay(10000);
+	MMC_get_volume_info(); // 获得 SD 卡相关信息，输出到终端
+	FAT32_Init(&Init_Arg); //FAT32 文件系统初始化，装入参数
+	Printf("BPB_Sector_No" ,Init_Arg.BPB_Sector_No);
+	Printf("Total_Size" ,Init_Arg.Total_Size );
+	Printf("FirstDirClust" ,Init_Arg.FirstDirClust);
+	Printf("FirstDataSector",Init_Arg.FirstDataSector);
+	Printf("BytesPerSector" ,Init_Arg.BytesPerSector);
+	Printf("FATsectors" ,Init_Arg.FATsectors);
+	Printf("SectorsPerClust",Init_Arg.SectorsPerClust);
+	Printf("FirstFATSector" ,Init_Arg.FirstFATSector);
+	Printf("FirstDirSector" ,Init_Arg.FirstDirSector);
+	// 以上几个语句用以输出参数值到终端
+	Printf("FAT32_OpenFile",(FAT32_OpenFile("\\TEST.TXT"))­>FileSize);
+	// 打开根目录下的 TEST.TXT 文件，并输出文件大小
+	FAT32_ReadFile(&FileInfo); // 读取文件数据，输出到终端
+	while(1);
+}
+最终实现的效果如下图所示：
+</pre>
+<img src="../../src/img/singlechip/stm-fat-15.png">
+<pre>至此对于 FAT32 文件系统根目录下的文件读取就已经实现了，至于多级子目录结构可以像查找文件的首簇一样查找某一级目录名的首簇，然后再到此簇下去找下一级目录的首簇，直到最终的文件。</pre>
+
+
+
+
+
+</body>
+</html>

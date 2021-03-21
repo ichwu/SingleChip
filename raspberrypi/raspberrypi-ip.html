@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>Raspberrypi 设置静态IP</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/raspberrypi.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">Raspberrypi 设置静态IP</div>
+<pre><code class="language-html line-numbers">设置静态IP需要编辑/etc/dhcpcd.conf文件
+interface wlan0
+static ip_address=192.168.0.33/24
+static routers=192.168.0.11
+static domain_name_servers=192.168.0.11 8.8.8.8
+
+按照手册的方法在dhcpcd.conf文件中添加以下内容：
+interface eth0
+inform 192.168.0.254
+static routers=192.168.0.1
+static domain_name_servers=8.8.8.8
+static domain_search=114.114.114.114
+reboot之后静态IP可启用。
+
+对于wifi连接：
+首先在dhcpcd.conf文件中设置静态IP：
+interface wlan0
+inform 192.168.0.254
+static routers=192.168.0.1
+static domain_name_servers=114.114.114.114
+
+再编辑/etc/wpa_supplicant/wpa_supplicant.conf 文件，该文件保存了wifi连接信息，
+同样也可以用man wpa_supplicant.conf查看参考手册。
+设置网络信息：
+network={
+ssid=“wifi_SSID”
+psk=“wifi_password”
+key_mgmt=WPA-PSK #加密方式
+}
+network={
+ssid=“wifi_SSID2”
+psk=“wifi_password”
+key_mgmt=WPA-PSK
+}
+</code></pre>
+
+</body>
+</html>

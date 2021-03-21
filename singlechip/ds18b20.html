@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>DS18B20</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">DS18B20</div>
+<pre><code class="language-html line-numbers"></code></pre>
+<br>DS18B20 是美信公司的一款温度传感器，单片机可以通过 1-Wire 协议与 DS18B20 进行通信，最终将温度读出。
+<br>1-Wire 总线的硬件接口很简单，只需要把 DS18B20 的数据引脚和单片机的一个 IO 口接上就可以了。硬件的简单，随之而来的，就是软件时序的复杂。
+
+<img src="../../src/img/singlechip/ds18b20-1.png">
+<img src="../../src/img/singlechip/ds18b20-2.png">
+
+<br>DS18B20 通过编程，可以实现最高 12 位的温度存储值，
+<br>在寄存器中，以补码的格式存储，
+<p>S	S	S	S	S	26	25	24	23	22	21	20	2-1	2-2	2-3	2-4
+</p>
+
+<pre>一共 2 个字节，LSB 是低字节，MSB 是高字节，其中 MSb 是字节的高位，LSb 是字节的低位
+其中 S表示的是符号位，低 11 位都是 2 的幂，用来表示最终的温度。
+二进制数字最低位变化 1，代表温度变化 0.0625 度的映射关系
+DS18B20 的温度测量范围是从-55 度到+125 度，而温度数据的表现形式，有正负温度。</pre>
+
+<img src="../../src/img/singlechip/ds18b20-3.png">
+<img src="../../src/img/singlechip/ds18b20-4.png">
+<pre>1、初始化。和 I 2 C 的寻址类似，1-Wire 总线开始也需要检测这条总线上是否存在 DS18B20这个器件。如果这条总线上存在 DS18B20，总线会根据时序要求返回一个低电平脉冲，如果不存在的话，也就不会返回脉冲，即总线保持为高电平，所以习惯上称之为检测存在脉冲。
+此外，获取存在脉冲不仅仅是检测是否存在 DS18B20，还要通过这个脉冲过程通知 DS18B20准备好，单片机要对它进行操作了，如图 所示。
+大家注意看图，实粗线是我们的单片机 IO 口拉低这个引脚，虚粗线是 DS18B20 拉低这个引脚，细线是单片机和 DS18B20 释放总线后，依靠上拉电阻的作用把 IO 口引脚拉上去。
+这个我们前边提到过了，51 单片机释放总线就是给高电平。
+存在脉冲检测过程，首先单片机要拉低这个引脚，持续大概 480us 到 960us 之间的时间即可，我们的程序中持续了 500us。然后，单片机释放总线，就是给高电平，DS18B20 等待
+大概 15 到 60us 后，会主动拉低这个引脚大概是 60 到 240us，而后 DS18B20 会主动释放总线，这样 IO 口会被上拉电阻自动拉高。
+首先，由于 DS18B20 时序要求非常严格，所以在操作时序的时候，为了防止中断干扰总线时序，先关闭总中断。
+然后第一步，拉低 DS18B20 这个引脚，持续 500us；第二步，延时 60us；第三步，读取存在脉冲，并且等待存在脉冲结束。
+bit Get18B20Ack()
+{
+bit ack;
+EA = 0; //禁止总中断
+IO_18B20 = 0; //产生 500us 复位脉冲
+DelayX10us(50);
+IO_18B20 = 1;
+DelayX10us(6); //延时 60us
+ack = IO_18B20; //读取存在脉冲
+while(!IO_18B20); //等待存在脉冲结束
+EA = 1; //重新使能总中断
+return ack;
+}
+DS18B20 等待大概是 15us 到 60us，我们要保证读到这个存在脉冲，那么 60us 以后去读
+肯定可以读到。当然，不能延时太久，太久，超过 75us，就可能读不到了，
+2、ROM 操作指令。我们学 I 2 C 总线的时候就了解到，总线上可以挂多个器件，通过不同的器件地址来访问不同的器件。同样，1-Wire 总线也可以挂多个器件，但是它只有一条线，
+如何区分不同的器件呢？
+在每个 DS18B20 内部都有一个唯一的 64 位长的序列号，这个序列号值就存在 DS18B20内部的 ROM 中。
+开始的 8 位是产品类型编码（DS18B20 是 0x10），接着的 48 位是每个器件唯一的序号，最后的 8 位是 CRC 校验码。
+DS18B20 可以引出去很长的线，最长可以到几十米，测不同位置的温度。单片机可以通过和 DS18B20 之间的通信，获取每个传感器所采集到的温度信息，也可以同时给所有的 DS18B20 发送一些指令。这些指令相对来说比较复杂，而且应用很少，所以这里大家有兴趣的话就自己去查手册完成吧，我们这里只讲一条总线上只接一个器件的指令和程序
+Skip ROM（跳过 ROM）：0xCC。当总线上只有一个器件的时候，可以跳过 ROM，不进行 ROM 检测。
+3、RAM 存储器操作指令。
+RAM 读取指令，只讲 2 条，其它的大家有需要可以随时去查资料。
+Read Scratchpad（读暂存寄存器）：0xBE
+这里要注意的是，DS18B20 的温度数据是 2 个字节，我们读取数据的时候，先读取到的是低字节的低位，读完了第一个字节后，再读高字节的低位，直到两个字节全部读取完毕。
+Convert Temperature（启动温度转换）：0x44
+当我们发送一个启动温度转换的指令后，DS18B20 开始进行转换。从转换开始到获取温度，DS18B20 是需要时间的，而这个时间长短取决于 DS18B20 的精度。
+前边说 DS18B20 最高可以用 12 位来存储温度，但是也可以用 11 位，10 位和 9 位一共四种格式。位数越高，精度越高，9 位模式最低位变化 1 个数字温度变化 0.5 度，同时转换速度也要快一些，如图所示。
+
+其中寄存器 R1 和 R0 决定了转换的位数，出厂默认值就 11，也就是 12 位表示温度，最大的转换时间是 750ms。当启动转换后，至少要再等 750ms 之后才能读取温度，否则读到的
+温度有可能是错误的值。这就是为什么很多同学读 DS18B20 的时候，第一次读出来的是 85度，这个值要么是没有启动转换，要么是启动转换了，但还没有等待一次转换彻底完成，读
+到的是一个错误的数据。
+</pre>
+<img src="../../src/img/singlechip/ds18b20-5.png">
+<img src="../../src/img/singlechip/ds18b20-6.png">
+
+<pre>4、DS18B20 的位读写时序。
+DS18B20 的时序图不是很好理解，大家对照时序图，结合我的解释，一定要把它学明白。写时序图如图所示。
+当要给 DS18B20 写入 0 的时候，单片机直接将引脚拉低，持续时间大于 60us 小于 120us就可以了。图上显示的意思是，单片机先拉低 15us 之后，DS18B20 会在从 15us 到 60us 之间的时间来读取这一位，DS18B20 最早会在 15us 的时刻读取，典型值是在 30us 的时刻读取，最多不会超过 60us，DS18B20 必然读取完毕，所以持续时间超过 60us 即可。当要给 DS18B20 写入 1 的时候，单片机先将这个引脚拉低，拉低时间大于 1us，然后马上释放总线，即拉高引脚，并且持续时间也要大于 60us。和写 0 类似的是，DS18B20 会在15us 到 60us 之间来读取这个 1。可以看出来，DS18B20 的时序比较严格，写的过程中最好不要有中断打断，但是在两个
+“位”之间的间隔，是大于 1 小于无穷的，那在这个时间段，我们是可以开中断来处理其它程序的。发送即写入一个字节的数据程序如下。
+void Write18B20(unsigned char dat)
+{
+unsigned char mask;
+EA = 0; //禁止总中断
+for (mask=0x01; mask!=0; mask&lt;&lt;=1) //低位在先，依次移出 8 个 bit
+{
+IO_18B20 = 0; //产生 2us 低电平脉冲
+_nop_();
+_nop_();
+if ((mask&dat) == 0) //输出该 bit 值
+IO_18B20 = 0;
+else
+IO_18B20 = 1;
+DelayX10us(6); //延时 60us
+IO_18B20 = 1; //拉高通信引脚
+}
+EA = 1; //重新使能总中断
+}
+</pre>
+<img src="../../src/img/singlechip/ds18b20-7.png">
+
+<pre>当要读取 DS18B20 的数据的时候，我们的单片机首先要拉低这个引脚，并且至少保持
+1us 的时间，然后释放引脚，释放完毕后要尽快读取。从拉低这个引脚到读取引脚状态，不
+能超过 15us。大家从图 16-18 可以看出来，主机采样时间，也就是 MASTER SAMPLES，是
+在 15us 之内必须完成的，读取一个字节数据的程序如下。
+unsigned char Read18B20()
+{
+unsigned char dat;
+unsigned char mask;
+EA = 0; //禁止总中断
+for (mask=0x01; mask!=0; mask&lt;&lt;=1) //低位在先，依次采集 8 个 bit
+{
+IO_18B20 = 0; //产生 2us 低电平脉冲
+_nop_();
+_nop_();
+IO_18B20 = 1; //结束低电平脉冲，等待 18B20 输出数据
+_nop_(); //延时 2us
+_nop_();
+if (!IO_18B20) //读取通信引脚上的值
+dat &= ~mask;
+else
+dat |= mask;
+DelayX10us(6); //再延时 60us
+}
+EA = 1; //重新使能总中断
+return dat;
+}
+
+
+DS18B20 所表示的温度值中，有小数和整数两部分。
+常用的带小数的数据处理方法有两种，一种是定义成浮点型直接处理，第二种是定义成整型，然后把小数和整数部分分离出来，在合适的位置点上小数点即可。
+我们在程序中使用的是第二种方法，下面我们就写一个程序，将读到的温度值显示在 1602 液晶上，并且保留一位小数位。
+</pre>
+
+</body>
+</html>

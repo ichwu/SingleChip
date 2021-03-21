@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>PWM 输出</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">PWM 输ds</div>
+
+<pre>脉冲宽度调制(PWM)，是英文“Pulse Width Modulation”的缩写，简称脉宽调制，是利用微处理器的数字输出来对模拟电路进行控制的一种非常有效的技术。简单一点，就是对脉冲宽度的控制，PWM 原理如图 14.1.1 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-pwm-1.png">
+
+<pre>图中，我们假定定时器工作在向上计数 PWM模式，且当 CNT<CCRx 时，输出 0，当 CNT>=CCRx 时输出 1。那么就可以得到如上的 PWM示意图：当 CNT 值小于 CCRx 的时候，IO 输出低电平(0)，当 CNT 值大于等于 CCRx 的时候，IO 输出高电平(1)，当 CNT 达到 ARR 值的时候，重新归零，然后重新向上计数，依次循环。改变 CCRx 的值，就可以改变 PWM 输出的占空比，改变 ARR 的值，就可以改变 PWM 输出的频率，这就是 PWM 输出的原理。
+
+STM32 的定时器除了 TIM6 和 7。其他的定时器都可以用来产生 PWM 输出。其中高级定时器 TIM1 和 TIM8 可以同时产生多达 7 路的 PWM 输出。而通用定时器也能同时产生多达 4路的 PWM 输出，这样，STM32 最多可以同时产生 30 路 PWM 输出！这里我们仅使用 TIM3的 CH2 产生一路 PWM 输出。如果要产生多路输出，大家可以根据我们的代码稍作修改即可。
+
+要使 STM32 的通用定时器 TIMx 产生 PWM 输出，除了上一章介绍的寄存器外，我们还会用到 3 个寄存器，来控制 PWM 的。这三个寄存器分别是：捕获/比较模式寄存器（TIMx_CCMR1/2）、捕获/比较使能寄存器（TIMx_CCER）、捕获/比较寄存器（TIMx_CCR1~4）。
+
+捕获/比较模式寄存器（TIMx_CCMR1/2），该寄存器总共有 2 个，TIMx _CCMR1和 TIMx _CCMR2。TIMx_CCMR1 控制 CH1 和 2，而 TIMx_CCMR2 控制 CH3 和 4。该寄存器的各位描述如图 14.1.2 所示
+</pre>
+
+<img src="../../src/img/singlechip/stm-pwm-2.png">
+
+<pre>该寄存器的有些位在不同模式下，功能不一样，所以在图 14.1.2 中，我们把寄存器分了 2层，上面一层对应输出而下面的则对应输入
+这里我们需要说明的是模式设置位 OCxM，此部分由 3 位组成。
+总共可以配置成 7 种模式，我们使用的是 PWM 模式，所以这 3 位必须设置为 110/111。
+这两种 PWM 模式的区别就是输出电平的极性相反。另外 CCxS 用于设置通道的方向（输入/输出）默认设置为 0，就是设置通道作为输出使用。
+
+
+捕获/比较使能寄存器（TIMx_CCER），该寄存器控制着各个输入输出通道的开关</pre>
+<img src="../../src/img/singlechip/stm-pwm-3.png">
+
+<pre>CC2E 位，该位是输入/捕获 2 输出使能位，要想PWM 从 IO 口输出，这个位必须设置为 1，所以我们需要设置该位为 1
+捕获/比较寄存器（TIMx_CCR1~4），该寄存器总共有 4 个，对应 4 个输通道 CH1~4。因为这 4 个寄存器都差不多，我们仅以 TIMx_CCR1 为例
+</pre>
+
+<img src="../../src/img/singlechip/stm-pwm-4.png">
+
+<pre>在输出模式下，该寄存器的值与 CNT 的值比较，根据比较结果产生相应动作。利用这点，我们通过修改这个寄存器的值，就可以控制 PWM 的输出脉宽了。本章，我们使用的是 TIM3的通道 2，所以我们需要修改 TIM3_CCR2 以实现脉宽控制 DS0 的亮度。
+我们要使用 TIM3 的 CH2 输出 PWM 来控制 DS0 的亮度，但是 TIM3_CH2 默认是接在 PA7上面的，而我们的 DS0 接在 PB5 上面，如果普通 MCU，可能就只能用飞线把 PA7 飞到 PB5上来实现了，不过，我们用的是 STM32，它比较高级，可以通过重映射功能，把 TIM3_CH2映射到 PB5 上
+STM32 的重映射控制是由复用重映射和调试 IO 配置寄存器（AFIO_MAPR）控制的，该寄存器的各位描述如图 14.1.5 所示</pre>
+
+<img src="../../src/img/singlechip/stm-pwm-5.png">
+
+<br>
+我们这里用到的是 TIM3 的重映射，从上图可以看出，TIM3_REMAP 是由[11:10]这 2 个位控制的。TIM3_REMAP[1:0]重映射控制表
+<br>
+
+<img src="../../src/img/singlechip/stm-pwm-6.png">
+
+<pre>默认条件下，TIM3_REMAP[1:0]为 00，是没有重映射的，所以 TIM3_CH1~TIM3_CH4 分别是接在 PA6、PA7、PB0 和 PB1 上的，而我们想让 TIM3_CH2 映射到 PB5 上，则需要设置TIM3_REMAP[1:0]=10，即部分重映射，这里需要注意，此时 TIM3_CH1 也被映射到 PB4 上了。
+
+配置步骤：
+1 ）开启 TIM3 时钟，配置 PB5 为复用输出。
+要使用 TIM3，我们必须先开启 TIM3 的时钟(通过 APB1ENR 设置)，这点相信大家看了这么多代码，应该明白了。这里我们还要配置 PB5 为复用输出，这是因为 TIM3_CH2 通道将重映射到 PB5 上，此时，PB5 属于复用功能输出。
+2） 设置 TIM3_CH2 重映射到 PB5 上 
+因为 TIM3_CH2 默认是接在 PA7 上的，所以我们需要设置 TIM3_REMAP 为部分重映射（通过 AFIO_MAPR 配置），让 TIM3_CH2 重映射到 PB5 上面。
+3 ）设置 TIM3 的 的 ARR 和 和 PSC 。
+在开启了 TIM3 的时钟之后，我们要设置 ARR 和 PSC 两个寄存器的值来控制输出 PWM 的周期。当 PWM 周期太慢（低于 50Hz）的时候，我们就会明显感觉到闪烁了。因此，PWM 周期在这里不宜设置的太小。
+4 ）设置 TIM3_CH2 的 的 PWM 模式。
+接下来，我们要设置 TIM3_CH2 为 PWM 模式（默认是冻结的），因为我们的 DS0 是低电平亮，而我们希望当 CCR2 的值小的时候，DS0 就暗，CCR2 值大的时候，DS0 就亮，所以我们要通过配置 TIM3_CCMR1 的相关位来控制 TIM3_CH2 的模式。
+5 ）使能 TIM3 的 的 CH2 输出，使能 TIM3 。
+在完成以上设置了之后，我们需要开启 TIM3 的通道 2 输出以及 TIM3。前者通过TIM3_CCER1 来设置，是单个通道的开关，而后者则通过 TIM3_CR1 来设置，是整个 TIM3 的总开关。只有设置了这两个寄存器，这样我们才能在 TIM3 的通道 2 上看到 PWM 波输出。
+6 ）修改 TIM3_CCR2 来控制占空比。
+最后，在经过以上设置之后，PWM 其实已经开始输出了，只是其占空比和频率都是固定的，而我们通过修改 TIM3_CCR2 则可以控制 CH2 的输出占空比。继而控制 DS0 的亮度。
+
+通过以上 6 个步骤，我们就可以控制 TIM3 的 CH2 输出 PWM 波了。这里特别提醒一下大家，高级定时器虽然和通用定时器类似，但是高级定时器要想输出 PWM，必须还要设置一个MOE 位(TIMx_BDTR 的第 15 位)，以使能主输出，否则不会输出 PWM!!
+
+在上一章的基础上，在 timer.c 里面加入如下代码
+</pre>
+
+
+
+<img src="../../src/img/singlechip/stm-pwm-7.png">
+
+<p>接着我们修改 timer.h 如下
+</p>
+
+<img src="../../src/img/singlechip/stm-pwm-8.png">
+<p>修改主程序里面的 main 函数如下：</p>
+<img src="../../src/img/singlechip/stm-pwm-9.png">
+</body>
+</html>

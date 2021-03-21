@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>GPIO</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">GPIO</div>
+<pre><code class="language-html line-numbers">GPIO常用寄存器
+
+模式配置寄存器 1 CRH 32位 每4位决定1个引脚 决定GPIO 8~15
+			     2 CRL  32位 每4位决定1个引脚 决定GPIO 0~7
+			
+		模式共有8种：推挽通用输出   开漏通用输出            速度有2MHz  10MHz  50MHZ
+					  推挽复用输出    开漏复用输出
+					 上拉输入   模拟输入
+					 下拉输入   浮空输入
+			
+数据寄存器   1  ODR 使用低16位 每一位代表引脚输出状态
+			2   IDR  使用低16位 每一位代表引脚输入状态
+			
+led.c和led.h 中配置了LED控制引脚的模式 及LED名称的宏定义 使用时只需包含led.h即可
+
+点亮LED的步骤： 包含sys.h delay.h led.h
+				配置系统时钟为9倍频 Stm32_Clock_Init（9）
+				初始化延时 delay_init（72）
+				初始化LED连接 LED_Init（）
+				执行循环
+		
+同样使用蜂鸣器时 只需包含beep.h 以及初始化 BEEP_Init（）       令BEEP = 1
+同样使用按键时 需要包含key.h 以及初始化KEY_Init（）  设置u8 key=0     key = KEY_Scan（0）  //0代表不支持连按 函数返回 0~4   0对应无按键  
+</code></pre>
+
+</body>
+</html>

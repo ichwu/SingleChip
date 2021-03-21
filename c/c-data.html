@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>C 数据类型</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/c.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">C 数据类型</div>
+<pre><code class="language-html line-numbers"C的基本数据类型：
+	int
+	char
+	float double
+	_bool
+
+二进制	116011 11			
+八进制	070  06	0	%o	%#o
+十六进制	0x6 0XFF	x X	%x %X	%#x %#X
+
+short  long  unsigned 用于修饰基本数据类型
+short  int  -->   short 
+long  int  -->  long
+unsigned  int  -->  unsigned 
+long long int  -->  long long (C99)
+任何有符号类型都可加signed用于强调
+一般short占16位
+       int占32位      -32767~32767   
+       long占32位        -2147483647~2147483647
+       long long占64位
+
+	总             	27	26                     	25	24	23	22	21	20
+28	256	128	64	32	16	8	4	2	1
+	总	215	214	213	212	211	210	29	28
+216	65536	32768	16384	8192	4096	2048	1024	512	256
+	总	223	222	221	220	219	218	217	216
+232	16777216	8388608	4194304	2097152	1048576	524288	262144	131072	65536
+	总	231	230	229	228	227	226	225	224
+264	4294967296	2147483648	1073741824	536870912	268435456	134217728	67108864	33554432	16777216
+
+3L表示3为long型数据 e.g 5ull 343LL
+八进制和十六进制常量被视为int类型 如果值太大 编译器依次用更大的类型去存储它
+当数据大于其数据类型时 系统会重新从起始点开始表示
+
+int short long unsigned char float double _Bool
+_Complex _Imaginary
+
+sizeof()
+scanf()
+
+bit	byte	word
+21	28	28-->264
+
+转换说明
+打印unsigned int类型的值 使用%u说明符
+long用%ld
+在x和o u前可以用l h前缀  如%ull  %ho  %hd
+%lx表示以十六进制格式打印long类型整数
+%lo表示以八进制格式打印long类型整数
+
+使用错误的转换说明会导致意想不到的结果
+	对于较小的整数 有符号与无符号类型的存储和显示都相同
+	给函数传递参数时，C编译器会把short类型自动转换为int类型（计算机能高效处理int类型）
+	使用h修饰符可以将大整数截断成short类型值
+
+Char类型用于存储字符 如字母和标点符号
+从技术层面看 char是整数类型 因为char类型实际存储的是整数
+char grade = 'A';
+char grade = 65; (正确，虽然65是int类型，但它在char类型可表示范围内，但不建议这样写）
+
+C语言将字符常量视为int类型而不是char类型 例如
+	在int为32位 char为8位的操作系统中 
+	char grade = 'B';
+	本来'B'对应的66存储在32位的存储单元中，现在缺可以存储在8位的存储单元中 利用这个字符常量特性 可以定义
+	char answer = 'fate';
+	grade = answer;
+	此时只有后8位有效 grade 的值为 e
+单引号只适用于一般字符 数字和标点符号 对于表示行为的字符则不适用
+C语言提供了3种方法来表示行为字符
+	1：使用ASCII码 如 char beep = 7;
+	2：使用转义字符 如 char next = '\n';  char beep = \007; char beep = \x07; 
+	3：从C90开始，除了用十进制 八进制形式表示字符常量 C语言还提供了第3种       选择 用十六进制来表示字符常量 即反斜杠后面跟一个x/X 再加上1~3位十六进制数字 例如Ctrl+P字符的ASCII十六进制码是10 表示为'\x10'  '\x010'
+	
+	使用ASCII码时 要注意数字与数字字符的区别 如
+	字符4对应的ASCII码为52    ‘4’表示字符4  而不是数值4
+	
+	有些C编译器把char实现为signed 有些实现为unsigned
+	无论编译器默认char为何种类型 都可以加signed/unsigned 修饰char
+	这对char类型处理一些小数时很有用
+
+C99标准添加了_Bool类型 属于整数类型范围 只占用一位存储空间
+程序通过布尔值可选择执行那部分代码
+
+C语言提供了许多有用的整数类型，但是某些类型名在不同系统中的功能不一样  
+C99新增了两个头文件stdint.h inttypes.h 以确保C语言的类型在各系统中的功能相同
+C语言为现有类型创建了更多的类型名 这些类型名定义在stdint.h头文件中
+例如 
+int32_t表示32位的有符号整数类型 
+在int为32位的系统中 头文件会把int32_t作为int的别名  
+在long为32位的系统中 头文件会把int32_t作为long的别名
+
+以上类型名为精确宽度整数类型（exact-width integer type）
+但是 计算机的底层系统可能不支持 因此它是可选项
+
+C99和C11提供了第二类别名集合 即最小宽度类型（minimum width type）
+它保证所表示的类型一定是至少有指定宽度的最小整数类型
+例如 int_least8_t是可容纳8位有符号整数值的类型中最小的类型的一个别名
+
+为使计算速度达到最快 C99和C11定义了最快最小宽度类型（fastst minimum width type）
+例如 int_fast8_t定义为系统中对8位有符号值而言运算最快的整数类型的别名
+
+有些程序员需要系统的最大整数类型 为此 C99定义了最大的有符号整数类型intmax_t 可以存储任何有效的有符号整数 uintmax_t表示最大的无符号整数类型 这些类型可能比long long还要大
+
+C99和C11不仅提供可移植的类型名 还提供相应的输入与输出
+如printf（）打印特定类型时要求与相应的转换说明匹配 如果要打印int32_t类型的值 有些定义使用%d 而有些定义使用%ld C针对这种情况 提供了一些字符宏来显示可移植类型 如PRId32字符串宏代表打印32位有符号的合适转换说明（如d或l）
+
+ 各种整数类型对大多数软件开发项目而言够用了 但面对金融和数学的程序经常使用浮点数 
+分别用科学计数法和指数计数法表示1000000为1.0x106   1.0e6
+C语言中的浮点数有float double long double
+C语言规定float类型必须至少能表示6位有效数字（小数点后6位） 且取值范围至少为10-37~10+37
+通常 用32位存储一个float类型数 8位用于表示指数的值和符号  24位用于表示有效数及符号
+C语言规定double类型必须至少能表示10位有效数字 且取值范围至少为10-37~10+37
+通常 用64位存储一个double类型数 一些系统将多出的32位全用于表示指数 以提高精度  另一些系统把其中一些分配给指数 以容纳更大的数
+long double满足比double更高的精度要求 C只保证long double类型至少与double类型的精度相同
+
+浮点数常量的表示要求
+浮点数常量的基本形式是：有符号的数字（含小数点） 后面加e/E 最后是一个有符号数 如-1.56E+12
+正号可以省略 可以省略小数点（3E3）或指数部分（16.33）  但不能同时省略两者
+可以省略小数部分（3.E55） 可以省略整数部分（.55E6）  但不能同时省略两者
+不能在中间加空格
+
+编译器默认认为浮点数常量是double类型的精度 如
+some = 6.0 * 1.9；
+6.0和1.9被存储为64位的double类型 使用双精度进行乘法运算 然后将乘积截成float类型宽度 
+这样做可以提高精度 但会减慢速度
+要将某个数当作float 可以在后面加后缀f/F
+要将某个数当作long double 可以在后面加后缀l/L  （通常用L）
+
+C99添加了一种新的浮点型常量格式———用十六进制表示浮点数
+用十六进制代替十进制
+用p/P代替e/E
+用2的幂代替10的幂
+如0xa.1fp10
+（称为p计数法）（并非所有的编译器都支持）
+
+printf()函数使用%f转换说明打印十进制计数法的float和double类型浮点数
+printf()函数使用%e/E转换说明打印指数计数法的float和double类型浮点数
+printf()函数使用%a/A转换说明打印p计数法的float和double类型浮点数（如果系统支持p计数法）
+打印long double 要使用%Lf   %Le %La
+
+对于那些未在函数原型中显式说明参数的函数（如printf（））
+传递参数时， C编译器会将float类型的值自动转换为double类型
+
+
+浮点值的上溢与下溢
+上溢：假设系统的最大float类型值为3.4E38
+float toobig = 3.4E38*100.0f；
+printf("%e\n", toobig);
+当计算导致数字过大 超过当前类型所能表达的范围时，就会发生上溢（overflow）
+C语言规定，这种情况下会赋予toobig一个表示无限大的特定值，printf()显示该值为inf/infinity
+下溢：float类型的数以指数和尾数部分来存储，存在这样一个数，它的指数部分是最小值，即由全部可用位表示的最小尾数值，当把它除以2（0.123E-10 / 2 = 0.0123E-10），计算机只好把尾数部分的位右移，丢弃一个二进制位，空出一个二进制位，该情况成为下溢（underflow）
+C语言把损失了类型全精度的浮点值称为低于正常的（subnormal）浮点值
+如果最小正浮点数除以一个非常大的值，会导致所有的位为0
+现在，C库提供了供用于检查计算是否会产生低于正常值的函数
+      还有一个特殊的浮点值NaN（not a number）例如，给asin（）函数传递一个值，该函数将返回一个角度，该角度的正弦就是传入函数的值。正弦值不能大于1，如果传入的参数大于1，该函数的行为是未定义的。这种情况下，该函数将返回NaN值，printf（）函数可将其显示为nan，NaN或其他类似内容
+      浮点数舍入错误：给定一个数（如3E20）加上1，那么发生变化的是21位，要正确进行运算，程序要存储21位数字，而float类型通常只能存储按指数比例缩小或放大的6或7位数字，这种情况下，计算机结果一定是错误的           
+	
+	
+
+许多科学和工程计算都要用到复数与虚数，C99标准支持复数类型和虚数类型，但有所保留
+C11标准把整个复数软件包都作为可选项
+简而言之，C语言有3种复数类型：float_Complex、 double_Complex 和 long double_Complex
+				   3种虚数类型：float_Imaginary、double_Imaginary 和 long double_Imaginary
+例如 float_Complex类型的变量应包含两个float类型的值 分别表示复数的实部和虚部 
+如果不考虑名称冲突，可以包含complex.h，用complex代替_Complex 用imaginary代替_Imaginary
+用I代替-1的平方根
+
+sizeof是C语言的内置运算符，C99和C11提供%zd转换说明匹配sizeof的返回类型，sizeof的返回类型是size_t  以字节为单位给出指定类型的大小 ，一些不支持C99和C11的编译器可用%u / %ul代替%zd
+
+编写程序时，应注意合理使用所需的变量和类型
+通常用int或float表示数字 用char表示字符
+在使用变量前声明 并使用有意义的变量名
+初始化变量应使用与变量类型匹配的常数类型 如果不匹配 编译器会进行强制转换
+许多程序员和公司内部都有系统化的命名约定 如i_smart是int类型的变量
+
+C语言用逗号分隔函数中的参数
+printf（）scanf（） 与一般函数不同，它们的参数是可变的
+转换说明应与参数个数对应
+C语言通过函数原型机制检查函数调用时参数的个数和类型是否正确
+但是，该机制对printf（）和scanf（）不起作用，因为它们的参数可变
+
+
+转义字符\b（退格）表示将光标左移一个位置
+转义字符\t（制表）表示使光标移至该行的下一个制表点 一般是第9列
+转义字符\r 表示光标回到当前行的起始处
+
+
+刷新输出
+最初，printf（）语句把输出发送到一个叫缓冲区（buffer）的中间存储区域，然后缓冲区中的内容再不断被发送到屏幕
+C标准规定当缓冲区满、遇到换行字符或需要输入的时候 将缓冲区中的内容发送到屏幕（从缓冲区把数据发送到屏幕或文件称为刷新缓冲区）
+旧式编译器遇到scanf（）也不会强行刷新缓冲区，此时可以加换行符刷新缓冲区
+刷新缓冲区也可以使用fflush（）函数
+
+两个32位存储单元存储的位组合完全相同，但是一个解释为float类型，另一个解释为long类型，其表达的值完全不同。
+C语言允许混合类型的表达式，但是会进行自动类型转换，以便运算时统一
+</code></pre>
+
+</body>
+</html>

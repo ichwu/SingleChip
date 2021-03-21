@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>System Folder</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">System Folder</div>
+
+<pre>5.1，delay 文件夹代码介绍；
+5.2，sys 文件夹代码介绍；
+5.3，usart 文件夹代码介绍
+
+
+delay 文件夹内包含了 delay.c 和 delay.h 两个文件，这两个文件用来实现系统的延时功能，其中包含 7 个函数：
+void delay_osschedlock(void);
+void delay_osschedunlock(void);
+void delay_ostimedly(u32 ticks);
+void SysTick_Handler(void);
+void delay_init(u8 SYSCLK);
+void delay_ms(u16 nms);
+void delay_us(u32 nus);
+前面 4 个函数，仅在支持操作系统（OS）的时候，需要用到，而后面三个函数，则不论是否支持 OS 都需要用到。
+在介绍这些函数之前，我们先了解一下 delay 延时的编程思想：CM3 内核的处理器，内部包含了一个 SysTick 定时器，SysTick 是一个 24 位的倒计数定时器，当计数到 0 时，将从RELOAD 寄存器中自动重装载定时初值，开始新一轮计数。只要不把它在 SysTick 控制及状态寄存器中的使能位清除，就永不停息。我们就是利用 STM32 的内部 SysTick 来实现延时的，这样既不占用中断，也不占用系统定时器。
+这里我们将介绍的是 ALIENTEK 提供的最新版本的延时函数，该版本的延时函数支持在任意操作系统（OS）下面使用，它可以和操作系统共SysTick 定时器。这里，我们以 UCOSII 为例，介绍如何实现操作系统和我们的 delay 函数共用 SysTick 定时器。首先，我们简单介绍下 UCOSII 的时钟：ucos 运行需要一个系统时钟节拍（类似 “心跳”），而这个节拍是固定的（由 OS_TICKS_PER_SEC 宏定义设置），比如要求 5ms 一次（即可设置：OS_TICKS_PER_SEC=200），在 STM32 上面，一般是由 SysTick 来提供这个节拍，也就是 SysTick要设置为 5ms 中断一次，为 ucos 提供时钟节拍，而且这个时钟一般是不能被打断的（否则就不准了）。
+因为在 ucos 下 SysTick 不能再被随意更改，如果我们还想利用 SysTick 来做 delay_us 或者delay_ms 的延时，就必须想点办法了，这里我们利用的是时钟摘取法。以 delay_us 为例，比如delay_us(50)，在刚进入 delay_us 的时候先计算好这段延时需要等待的 SysTick 计数次数，这里为 50*9（假设系统时钟为 72Mhz，那么 SysTick 每增加 1，就是 1/9us），然后我们就一直统计SysTick 的计数变化，直到这个值变化了 50*9，一旦检测到变化达到或者超过这个值，就说明延时 50us 时间到了。这样，我们只是抓取 SysTick 计数器的变化，并不需要修改 SysTick 的任何状态，完全不影响 SysTick 作为 UCOS 时钟节拍的功能，这就是实现 delay 和操作系统共用SysTick 定时器的原理。
+</pre>
+<br>5.11 当需要 delay_ms 和 delay_us 支持操作系统（OS）的时候，我们需要用到 3 个宏定义和 4个函数，宏定义及函数代码如下
+<img src="../../src/img/singlechip/stm-folder-1.png">
+
+
+<pre>以上代码，仅支持 UCOSII 和 UCOSIII，不过，对于其他 OS 的支持，也只需要对以上代码进行简单修改即可实现。
+
+支持 OS 需要用到的 三个宏定义以 （以 UCOSII 为例） 即：
+#define delay_osrunning OSRunning //OS 是否运行标记,0,不运行;1,在运行
+#define delay_ostickspersec OS_TICKS_PER_SEC //OS 时钟节拍,即每秒调度次数
+#define delay_osintnesting OSIntNesting //中断嵌套级别,即中断嵌套次数
+宏定义：delay_osrunning，用于标记 OS 是否正在运行，当 OS 已经开始运行时，该宏定义值为 1，当 OS 还未运行时，该宏定义值为 0。
+宏定义：delay_ ostickspersec，用于表示 OS 的时钟节拍，即 OS 每秒钟任务调度次数。
+宏定义：delay_ osintnesting，用于表示 OS 中断嵌套级别，即中断嵌套次数，每进入一个中断，该值加 1，每退出一个中断，该值减 1。
+
+支持 OS 需要用到的 4 个函数，即：
+函数：delay_osschedlock，用于 delay_us 延时，作用是禁止 OS 进行调度，以防打断 us 级延时，导致延时时间不准。
+函数：delay_osschedunlock，同样用于 delay_us 延时，作用是在延时结束后恢复 OS 的调度，继续正常的 OS 任务调度。
+函数：delay_ostimedly，则是调用 OS 自带的延时函数，实现延时。该函数的参数为时钟节拍数。
+函数：SysTick_Handler，则是 systick 的中断服务函数，该函数为 OS 提供时钟节拍，同时可以引起任务调度。
+以上就是 delay_ms 和 delay_us 支持操作系统时，需要实现的 3 个宏定义和 4 个函数。
+
+
+5.1.2 delay_init 函数
+该函数用来初始化 2 个重要参数：fac_us 以及 fac_ms；同时把 SysTick 的时钟源选择为外部时钟，如果需要支持操作系统（OS），只需要在 sys.h 里面，设置 SYSTEM_SUPPORT_OS 宏的值为 1 即可，然后，该函数会根据 delay_ostickspersec 宏的设置，来配置 SysTick 的中断时间，并开启 SysTick 中断。
+具体代码如下：
+//初始化延迟函数
+//当使用 OS 的时候,此函数会初始化 OS 的时钟节拍
+//SYSTICK 的时钟固定为 HCLK 时钟的 1/8
+//SYSCLK:系统时钟
+void delay_init(u8 SYSCLK)
+{
+#if SYSTEM_SUPPORT_OS //如果需要支持 OS.
+u32 reload;
+#endif
+SysTick->CTRL&=~(1&lt;&lt;2); //SYSTICK 使用外部时钟源
+fac_us=SYSCLK/8; //不论是否使用 OS,fac_us 都需要使用
+#if SYSTEM_SUPPORT_OS //如果需要支持 OS.
+reload=SYSCLK/8; //每秒钟的计数次数 单位为 K
+reload*=1000000/delay_ostickspersec; //根据 delay_ostickspersec 设定溢出时间
+//reload 为 24 位寄存器,最大值:16777216,在 72M 下,约合 1.86s 左右
+fac_ms=1000/delay_ostickspersec; //代表 OS 可以延时的最少单位
+SysTick->CTRL|=1&lt;&lt;1; //开启 SYSTICK 中断
+SysTick->LOAD=reload; //每 1/delay_ostickspersec 秒中断一次
+SysTick->CTRL|=1&lt;&lt;0; //开启 SYSTICK
+#else
+fac_ms=(u16)fac_us*1000; //非 OS 下,代表每个 ms 需要的 systick 时钟数
+#endif
+可以看到，delay_init 函数使用了条件编译，来选择不同的初始化过程，如果不使用 OS 的
+时候，只是设置一下 SysTick 的时钟源以及确定 fac_us 和 fac_ms 的值。而如果使用 OS 的时候，
+则会进行一些不同的配置，这里的条件编译是根据 SYSTEM_SUPPORT_OS 这个宏来确定的，
+该宏在 sys.h 里面定义。
+SysTick 是 MDK 定义了的一个结构体（在 core_m3.h 里面），里面包含 CTRL、LOAD、VAL、
+CALIB 等 4 个寄存器，
+SysTick->CTRL 的各位定义如图 5.1.2.1 所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-folder-2.png">
+<br>SysTick-> LOAD 
+<img src="../../src/img/singlechip/stm-folder-3.png">
+<br>SysTick-> VAL
+<img src="../../src/img/singlechip/stm-folder-4.png">
+
+<pre>SysTick-> CALIB 不常用，在这里我们也用不到，故不介绍了。
+SysTick->CTRL&=0xfffffffb;这一句把 SysTick 的时钟选择外部时钟，这里需要注意的是：
+SysTick 的时钟源自 HCLK 的 8 分频，假设我们外部晶振为 8M，然后倍频到 72M，那么 SysTick
+的时钟即为 9Mhz，也就是 SysTick 的计数器 VAL 每减 1，就代表时间过了 1/9us。
+在不使用 OS 的时候：fac_us，为 us 延时的基数，也就是延时 1us，SysTick->LOAD 所应
+设置的值。fac_ms 为 ms 延时的基数，也就是延时 1ms，SysTick->LOAD 所应设置的值。fac_us
+为 8 位整形数据，fac_ms 为 16 位整形数据。Systick 的时钟来自系统时钟 8 分频，正因为如此，
+系统时钟如果不是 8 的倍数(不能被 8 整除)，则会导致延时函数不准确，这也是我们推荐外部
+时钟选择 8M 的原因。这点大家要特别留意。
+当使用 OS 的时候，fac_us，还是 us 延时的基数，不过这个值不会被写到 SysTick->LOAD
+寄存器来实现延时，而是通过时钟摘取的办法实现的（前面已经介绍了）。而 fac_ms 则代表 OS
+自带的延时函数所能实现的最小延时时间（如 delay_ostickspersec=200，那么 fac_ms 就是 5ms）
+
+5.1.3 delay_us 函数
+该函数用来延时指定的 us，其参数 nus 为要延时的微秒数。该函数有使用 OS 和不使用 OS
+两个版本，这里我们分别介绍，首先是不使用 OS 的时候，实现函数如下：
+//延时 nus
+//nus 为要延时的 us 数.
+void delay_us(u32 nus)
+{
+u32 temp;
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+89
+STM32 F1 开发指南( ( 寄存器 版) )
+SysTick->LOAD=nus*fac_us; //时间加载
+SysTick->VAL=0x00; //清空计数器
+SysTick->CTRL=0x01 ; //开始倒数
+do
+{
+temp=SysTick->CTRL;
+}while((temp&0x01)&&!(temp&(1<<16)));//等待时间到达
+SysTick->CTRL=0x00; //关闭计数器
+SysTick->VAL =0X00; //清空计数器
+}
+有了上面对 SysTick 寄存器的描述，这段代码不难理解。其实就是先把要延时的 us 数换算
+成 SysTick 的时钟数，然后写入 LOAD 寄存器。然后清空当前寄存器 VAL 的内容，再开启倒数
+功能。等到倒数结束，即延时了 nus。最后关闭 SysTick，清空 VAL 的值。实现一次延时 nus
+的操作，但是这里要注意 nus 的值，不能太大，必须保证 nus<=（2^24）/fac_us，否则将导致
+延时时间不准确。这里特别说明一下：temp&0x01，这一句是用来判断 systick 定时器是否还处
+于开启状态，可以防止 systick 被意外关闭导致的死循环。
+再来看看使用 OS 的时候，delay_us 的实现函数如下：
+//延时 nus
+//nus 为要延时的 us 数.
+void delay_us(u32 nus)
+{
+u32 ticks;
+u32 told,tnow,tcnt=0;
+u32 reload=SysTick->LOAD; //LOAD 的值
+ticks=nus*fac_us; //需要的节拍数
+delay_osschedlock(); //阻止 OS 调度，防止打断 us 延时
+told=SysTick->VAL; //刚进入时的计数器值
+while(1)
+{
+tnow=SysTick->VAL;
+if(tnow!=told)
+{
+if(tnow<told)tcnt+=told-tnow; //注意 SYSTICK 是一个递减的计数器.
+else tcnt+=reload-tnow+told;
+told=tnow;
+if(tcnt>=ticks)break; //时间超过/等于要延迟的时间,则退出.
+}
+};
+delay_osschedunlock(); //恢复 OS 调度
+}
+这里就正是利用了我们前面提到的时钟摘取法，ticks 是延时 nus 需要等待的 SysTick 计数
+次数（也就是延时时间），told 用于记录最近一次的 SysTick->VAL 值，然后 tnow 则是当前的
+SysTick->VAL 值，通过他们的对比累加，实现 SysTick 计数次数的统计，统计值存放在 tcnt 里
+面，然后通过对比 tcnt 和 ticks，来判断延时是否到达，从而达到不修改 SysTick 实现 nus 的延
+时，从而可以和 OS 共用一个 SysTick。
+上面的 delay_osschedlock 和 delay_osschedunlock 是 OS 提供的两个函数，用于调度上锁和
+解锁，这里为了防止 OS 在 delay_us 的时候打断延时，可能导致的延时不准，所以我们利用这
+两个函数来实现免打断，从而保证延时精度！同时，此时的 delay_us，可以实现最长 2^32us 的
+延时，大概是 4294 秒
+
+
+5.1.4 delay_ms 函数
+该函数用来延时指定的 ms，其参数 nms 为要延时的毫秒数。该函数同样有使用 OS 和不使
+用 OS 两个版本，这里我们分别介绍，首先是不使用 OS 的时候，实现函数如下：
+//延时 nms
+//注意 nms 的范围
+//SysTick->LOAD 为 24 位寄存器,所以,最大延时为:
+//nms<=0xffffff*8*1000/SYSCLK
+//SYSCLK 单位为 Hz,nms 单位为 ms
+//对 72M 条件下,nms<=1864
+void delay_ms(u16 nms)
+{
+u32 temp;
+SysTick->LOAD=(u32)nms*fac_ms;//时间加载(SysTick->LOAD 为 24bit)
+SysTick->VAL =0x00; //清空计数器
+SysTick->CTRL=0x01 ; //开始倒数
+do
+{
+temp=SysTick->CTRL;
+}while((temp&0x01)&&!(temp&(1<<16)));//等待时间到达
+SysTick->CTRL=0x00; //关闭计数器
+SysTick->VAL =0X00; //清空计数器
+}
+此部分代码和 5.1.3 节的 delay_us（非 OS 版本）大致一样，但是要注意因为 LOAD 仅仅是
+一个 24bit 的寄存器，延时的 ms 数不能太长。否则超出了 LOAD 的范围，高位会被舍去，导致
+延时不准。最大延迟 ms 数可以通过公式：nms<=0xffffff*8*1000/SYSCLK 计算。SYSCLK 单
+位为 Hz，nms 的单位为 ms。如果时钟为 72M，那么 nms 的最大值为 1864ms。超过这个值，建
+议通过多次调用 delay_ms 实现，否则就会导致延时不准确。
+再来看看使用 OS 的时候，delay_ms 的实现函数如下：
+//延时 nms
+//nms:要延时的 ms 数
+void delay_ms(u16 nms)
+{
+if(delay_osrunning&&delay_osintnesting==0)
+//如果 OS 已经在跑了,并且不是在中断里面(中断里面不能任务调度)
+{
+if(nms>=fac_ms) //延时的时间大于 OS 的最少时间周期
+{
+delay_ostimedly(nms/fac_ms);//OS 延时
+}
+nms%=fac_ms; //OS 已经无法提供这么小的延时了,采用普通方式延时
+}
+delay_us((u32)(nms*1000)); //普通方式延时
+}
+该函数中，delay_osrunning 是 OS 正在运行的标志，delay_osintnesting 则是 OS 中断嵌套次
+数，必须 delay_osrunning 为真，且 delay_osintnesting 为 0 的时候，才可以调用 OS 自带的延时
+函数进行延时（可以进行任务调度），delay_ostimedly 函数就是利用 OS 自带的延时函数，实现
+任务级延时的，其参数代表延时的时钟节拍数（假设 delay_ostickspersec=200，那么
+delay_ostimedly (1)，就代表延时 5ms）。
+当 OS 还未运行的时候，我们的 delay_ms 就是直接由 delay_us 实现的，OS 下的 delay_us
+可以实现很长的延时而不溢出！，所以放心的使用 delay_us 来实现 delay_ms，不过由于 delay_us
+的时候，任务调度被上锁了，所以还是建议不要用 delay_us 来延时很长的时间，否则影响整个
+系统的性能。
+当 OS 运行的时候，我们的 delay_ms 函数将先判断延时时长是否大于等于 1 个 OS 时钟节
+拍（fac_ms）,当大于这个值的时候，我们就通过调用 OS 的延时函数来实现（此时任务可以调
+度），不足 1 个时钟节拍的时候，直接调用 delay_us 函数实现（此时任务无法调度）。
+
+</pre>
+
+<pre>5.2 sys 文件夹 代码介绍
+sys 文件夹内共 5 个文件：sys.c、sys.h、stm32f10x.h、system_stm32f10x.h 和 core_cm3.h。
+其中sys.c和sys.h是由ALIENTEK提供，我们将重点介绍。而其他三个文件则是拷贝自STM32F1
+的 CMSIS 库文件，主要包含了 STM32F1 的寄存器定义、位定义以及内存映射等，我们的代码
+里面需要用到这些内容，所以直接拷贝过来即可，这三个文件我们就不做介绍了。
+在 sys.h 里面定义了 STM32F1 的 IO 口输入读取宏定义和输出宏定义。sys.c 里面定义了很
+多与 STM32F1 底层硬件很相关的设置函数，包括系统时钟的配置、IO 配置、中断的配置等。
+下面我们将分别向大家介绍这两个文件
+5.2.1 IO 口的位操作实现
+该部分代码实现对 STM32 各个 IO 口的位操作，包括读入和输出。当然在这些函数调用之
+前，必须先进行 IO 口时钟的使能和 IO 口功能定义。此部分仅仅对 IO 口进行输入输出读取和
+控制。代码如下：
+#define BITBAND(addr， bitnum) ((addr & 0xF0000000)+0x2000000+((addr &0xFFFFF)&lt;&lt;5)
++(bitnum&lt;&lt;2))
+#define MEM_ADDR(addr) *((volatile unsigned long *)(addr))
+#define BIT_ADDR(addr， bitnum) MEM_ADDR(BITBAND(addr， bitnum))
+//IO 口地址映射
+#define GPIOA_ODR_Addr (GPIOA_BASE+12) //0x4001080C
+#define GPIOB_ODR_Addr (GPIOB_BASE+12) //0x40010C0C
+#define GPIOC_ODR_Addr (GPIOC_BASE+12) //0x4001100C
+#define GPIOD_ODR_Addr (GPIOD_BASE+12) //0x4001140C
+#define GPIOE_ODR_Addr (GPIOE_BASE+12) //0x4001180C
+#define GPIOF_ODR_Addr (GPIOF_BASE+12) //0x40011A0C
+#define GPIOG_ODR_Addr (GPIOG_BASE+12) //0x40011E0C
+#define GPIOA_IDR_Addr (GPIOA_BASE+8) //0x40010808
+#define GPIOB_IDR_Addr (GPIOB_BASE+8) //0x40010C08
+#define GPIOC_IDR_Addr (GPIOC_BASE+8) //0x40011008
+#define GPIOD_IDR_Addr (GPIOD_BASE+8) //0x40011408
+#define GPIOE_IDR_Addr (GPIOE_BASE+8) //0x40011808
+#define GPIOF_IDR_Addr (GPIOF_BASE+8) //0x40011A08
+#define GPIOG_IDR_Addr (GPIOG_BASE+8) //0x40011E08
+//IO 口操作，只对单一的 IO 口!
+//确保 n 的值小于 16!
+#define PAout(n) BIT_ADDR(GPIOA_ODR_Addr，n) //输出
+#define PAin(n) BIT_ADDR(GPIOA_IDR_Addr，n) //输入
+#define PBout(n) BIT_ADDR(GPIOB_ODR_Addr，n) //输出
+#define PBin(n) BIT_ADDR(GPIOB_IDR_Addr，n) //输入
+#define PCout(n) BIT_ADDR(GPIOC_ODR_Addr，n) //输出
+#define PCin(n) BIT_ADDR(GPIOC_IDR_Addr，n) //输入
+#define PDout(n) BIT_ADDR(GPIOD_ODR_Addr，n) //输出
+#define PDin(n) BIT_ADDR(GPIOD_IDR_Addr，n) //输入
+#define PEout(n) BIT_ADDR(GPIOE_ODR_Addr，n) //输出
+#define PEin(n) BIT_ADDR(GPIOE_IDR_Addr，n) //输入
+#define PFout(n) BIT_ADDR(GPIOF_ODR_Addr，n) //输出
+#define PFin(n) BIT_ADDR(GPIOF_IDR_Addr，n) //输入
+#define PGout(n) BIT_ADDR(GPIOG_ODR_Addr，n) //输出
+#define PGin(n) BIT_ADDR(GPIOG_IDR_Addr，n) //输入
+以上代码的实现得益于 CM3 的位带操作，具体的实现比较复杂，请参考&lt;&lt;CM3 权威指南>>
+第五章(87 页~92 页)。有了上面的代码，我们就可以像 51/AVR 一样操作 STM32 的 IO 口了。
+比如，我要 PORTA 的第七个 IO 口输出 1，则可以使用 PAout(6)=1;即可实现。我要判断 PORTA
+的第 15 个位是否等于 1，则可以使用 if(Pain(14)==1)…；就可以了。
+这里顺便说一下，在 sys.h 中的几个其他的全局宏定义，他们是：
+//0,不支持 OS; 1,支持 OS
+#define SYSTEM_SUPPORT_OS 0 //定义系统文件夹是否支持 OS
+//Ex_NVIC_Config 专用定义
+#define GPIO_A 0
+#define GPIO_B 1
+#define GPIO_C 2
+#define GPIO_D 3
+#define GPIO_E 4
+#define GPIO_F 5
+#define GPIO_G 6
+#define FTIR 1 //下降沿触发
+#define RTIR 2 //上升沿触发
+//JTAG 模式设置定义
+#define JTAG_SWD_DISABLE 0X02
+#define SWD_ENABLE 0X01
+#define JTAG_SWD_ENABLE 0X00
+SYSTEM_SUPPORT_OS，这个宏定义用来定义 SYSTEM 文件夹是否支持操作系统（OS），
+如果在 OS 下面使用 SYSTEM 文件夹，那么设置这个值为 1 即可，否则设置为 0（默认）。其他
+宏定义在后面的使用中会不时的用到，他们分别是作为 Ex_NVIC_Config 函数和 JTAG_Set 函
+数的参数来使用的，具体见相关函数的说明。
+</pre>
+
+<pre>5.2.2 Stm32_Clock_Init 函数
+在介绍 Stm32_Clock_Init 函数之前，我们先来看看 STM32 的时钟树图（非常重要），如图
+5.2.2.1 所示：</pre>
+
+
+<img src="../../src/img/singlechip/stm-folder-5.png">
+
+<pre>上图从左往右看，就是整个 STM32 的时钟走向。这里，我们挑选出 5 个重要的地方进行
+介绍（图 5.2.2.1 中标出的 1~5）。
+1、 PLLMUL
+PLLMUL 用于设置 STM32 的 PLLCLK，STM32 支持 2~16 倍频设置。我们常用
+的是 8M 外部晶振+9 倍频设置，刚好得到 72Mhz 的 PLLCLK。从上图可以看出，
+PLLMUL 的时钟源，可以来自内部 8M RC 振荡/2 或者外部高速晶振（4~16Mhz）。这
+里切记PLLMUL设置后的频率不要超过72Mhz （想超也是可以，最大128M也可以跑，
+不过一旦出问题 ST 是不负责的!）。
+2、 SW
+SW 是 STM32 的 SYSCLK（系统时钟）切换开关，从上图可以看出，SYSCLK 的
+来源可以是3个：HSI、PLLCLK和HSE。我们一般选择PLLCLK作为SYSCLK。SYSCLK
+最大为 72M。这里提示一下大家：STM32 刚上电的时候，用的是系统内部 8M RC 时
+钟，之后运行程序才会把时钟源设置为其他。
+3、 系统滴答时钟（SYSTICK）
+SYSTICK 就是 CortexM3 的系统滴答时钟，上图清楚的表明 SYSTICK 的来源是
+AHB 分频后再 8 分频，因为我们一般设置 AHB 不分频，所以 SYSTICK 的频率就等于
+SYSCLK/8，如果 SYSCLK 为 72M，那么 SYSTICK 的频率就是 9Mhz。前面介绍的延
+时函数，就是基于 SYSTICK 来实现的。
+4、 PCLK1
+PCLK1 是 APB1 总线上外设的时钟，最大为 36Mhz，所有挂载在 APB1 上的外设，
+最大时钟都是 36Mhz（定时器除外，原因见上图），比如串口 2~5、SPI2 和 SPI3 等，
+在使用的时候，要特别留意。PCLK1 的时钟可以通过 APB1 预分频器设置，我们默认
+一般设置为 2 分频。
+5、 PCLK2
+PCLK2 是APB2总线上外设的时钟，最大为 72Mhz，所有挂载在 APB2 上的外设，
+最大时钟都是 72Mhz，比如 GPIOA~G、串口 1、SPI1、ADC1~3 等。 PCLK2 的时钟
+可以通过 APB2 预分频器设置，我们默认一般设置为 1，也就是不分频。
+关于时钟的详细介绍，在《STM32 中文参考手册》第 6.2 节（55~60 页）有详细介绍。有
+不明白的地方，可以对照手册仔细研究。
+从上图可以看出 STM32 的时钟设计的比较复杂，各个时钟基本都是可控的，任何外设都
+有对应的时钟控制开关，这样的设计，对降低功耗是非常有用的，不用的外设不开启时钟，就
+可以大大降低其功耗。
+下面开始 Stm32_Clock_Init 函数的介绍，该函数的主要功能就是初始化 STM32 的时钟。其
+中还包括对向量表的配置，以及相关外设的复位及配置。其代码如下
+//系统时钟初始化函数
+//pll:选择的倍频数，从 2 开始，最大值为 16
+void Stm32_Clock_Init(u8 PLL)
+{
+unsigned char temp=0;
+MYRCC_DeInit(); //复位并配置向量表
+RCC->CR|=0x00010000; //外部高速时钟使能 HSEON
+while(!(RCC->CR>>17)); //等待外部时钟就绪
+RCC->CFGR=0X00000400; //APB1=DIV2;APB2=DIV1;AHB=DIV1;
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+95
+STM32 F1 开发指南( ( 寄存器 版) )
+PLL-=2; //抵消 2 个单位
+RCC->CFGR|=PLL<<18; //设置 PLL 值 2~16
+RCC->CFGR|=1<<16; //PLLSRC ON
+FLASH->ACR|=0x32; //FLASH 2 个延时周期
+RCC->CR|=0x01000000; //PLLON
+while(!(RCC->CR>>25)); //等待 PLL 锁定
+RCC->CFGR|=0x00000002; //PLL 作为系统时钟
+while(temp!=0x02) //等待 PLL 作为系统时钟设置成功
+{
+temp=RCC->CFGR>>2;
+temp&=0x03;
+}
+}
+Stm32_Clock_Init 函数中，我们设置了 APB1 为 2 分频，APB2 为 1 分频，AHB 为 1 分频，
+同时选择 PLLCLK 作为系统时钟。该函数只有一个参数 PLL，就是用来配置时钟的倍频数的，
+比如当前所用的晶振为 8Mhz，PLL 的值设为 9，那么 STM32 将运行在 72M 的速度下。
+MYRCC_DeInit 函数实现外设的复位，并关断所有中断，同时调用向量表配置函数
+MY_NVIC_SetVectorTable，配置中断向量表。MYRCC_DeInit 函数如下：
+//把所有时钟寄存器复位
+void MYRCC_DeInit(void)
+{
+RCC->APB1RSTR = 0x00000000;//复位结束
+RCC->APB2RSTR = 0x00000000;
+RCC->AHBENR = 0x00000014; //睡眠模式闪存和 SRAM 时钟使能.其他关闭.
+RCC->APB2ENR = 0x00000000; //外设时钟关闭.
+RCC->APB1ENR = 0x00000000;
+RCC->CR |= 0x00000001; //使能内部高速时钟 HSION
+RCC->CFGR &= 0xF8FF0000;
+//复位 SW[1:0],HPRE[3:0],PPRE1[2:0],PPRE2[2:0],ADCPRE[1:0],MCO[2:0]
+RCC->CR &= 0xFEF6FFFF; //复位 HSEON,CSSON,PLLON
+RCC->CR &= 0xFFFBFFFF; //复位 HSEBYP
+RCC->CFGR &= 0xFF80FFFF;//复位 PLLSRC, PLLXTPRE, PLLMUL[3:0] and USBPRE
+RCC->CIR = 0x00000000; //关闭所有中断
+//配置向量表
+#ifdef VECT_TAB_RAM
+MY_NVIC_SetVectorTable(0x20000000, 0x0);
+#else
+MY_NVIC_SetVectorTable(0x08000000,0x0);
+#endif
+}
+RCC 也是 MDK 定义的一个结构体，包含 RCC 相关的寄存器组。其寄存器名与 STM32 中
+文参考手册里面定义的寄存器名字是一摸一样的，所以在你不明白某个寄存器干什么用的时候，
+可以到《STM32 中文参考手册》里面查找一下，你就可以迅速查到这个寄存器的作用以及每个
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+96
+STM32 F1 开发指南( ( 寄存器 版) )
+位所代表的意思。
+MY_NVIC_SetVectorTable 函数的代码如下：
+//设置向量表偏移地址
+//NVIC_VectTab：基址
+//Offset：偏移量
+void MY_NVIC_SetVectorTable(u32 NVIC_VectTab, u32 Offset)
+{
+SCB->VTOR = NVIC_VectTab|(Offset & (u32)0x1FFFFF80);//设置向量表偏移寄存器
+//用于标识向量表是在 CODE 区还是在 RAM 区
+}
+该函数是用来配置中断向量表基址和偏移量，决定是在那个区域。当在 RAM 中调试代码
+的时候，需要把中断向量表放到 RAM 里面这就需要通过这个函数来配置。关于向量表的详细
+介绍请参考《CM3 权威指南》第七章，第 113 页的向量表一章。
+
+5.2.3 Sys_Soft_Reset 函数
+该函数用来实现 STM32 的软复位，代码如下：
+//系统软复位
+void Sys_Soft_Reset(void)
+{
+SCB->AIRCR =0X05FA0000|(u32)0x04;
+}
+SCB 为 MDK 定义的一个寄存器组，里面包含了很多与内核相关的控制器，该结构体在
+core_m3.h 里面，可以找到，具体的定义如下所示：
+typedef struct
+{
+__I uint32_t CPUID; //CM3 内核版本号寄存器
+__IO uint32_t ICSR; //中断控制及状态控制寄存器
+__IO uint32_t VTOR; //向量表偏移量寄存器
+__IO uint32_t AIRCR; //应用程序中断及复位控制寄存器
+__IO uint32_t SCR; //系统控制寄存器
+__IO uint32_t CCR; //配置与控制寄存器
+__IO uint8_t SHP[12]; //系统异常优先级寄存器组
+__IO uint32_t SHCSR; //系统 Handler 控制及状态寄存器
+__IO uint32_t CFSR; //MFSR+BFSR+UFSR
+__IO uint32_t HFSR; //硬件 fault 状态寄存器
+__IO uint32_t DFSR; //调试 fault 状态寄存器
+__IO uint32_t MMFAR; //存储管理地址寄存器
+__IO uint32_t BFAR; //硬件 fault 地址寄存器
+__IO uint32_t AFSR; //辅助 fault 地址寄存器
+__I uint32_t PFR[2]; //处理器功能寄存器
+__I uint32_t DFR; //调试功能寄存器
+__I uint32_t ADR; //辅助功能寄存器
+__I uint32_t MMFR[4]; //存储器模型功能寄存器
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+97
+STM32 F1 开发指南( ( 寄存器 版) )
+__I uint32_t ISAR[5]; //ISA 功能寄存器
+} SCB_TypeDef;
+在 Sys_Soft_Reset 函数里面，我们只是对 SCB-> AIRCR 进行了一次操作，即实现了 STM32
+的软复位。AIRCR 寄存器的各位定义如图 5.2.3.1 所示：
+</pre>
+
+
+<img src="../../src/img/singlechip/stm-folder-6.png">
+
+<pre>从图 5.2.3.1 中各位的定义可以看出，要实现 STM32 的软复位，只要置位 BIT2，这样就可
+以请求一次软复位。这里要注意 bit31~16 的访问钥匙，要将访问钥匙 0X05FA0000 与我们要进
+行的操作相或，然后写入 AIRCR，这样才被 CM3 接受。
+
+5.2.4 Sys_Standby 函数
+STM32 提供了 3 种低功耗模式，以达到不同层次的降低功耗的目的，这三种模式如下：
+1）睡眠模式（CM3 内核停止工作，外设仍在运行）；
+2）停止模式（所有的时钟都停止）；
+3）待机模式；
+其中睡眠模式又分为有深度睡眠和睡眠之分。Sys_Standby 函数用来使 STM32 进入待机模
+式，在该模式下，STM32 所消耗的功耗最低。表 5.2.4.1 是一个 STM32 的低功耗一览表：</pre>
+
+<img src="../../src/img/singlechip/stm-folder-7.png">
+<img src="../../src/img/singlechip/stm-folder-8.png">
+
+<pre>根据上面的了解，我们就可以写出进入待机模式的代码，Sys_Standby 的具体实现代码如下
+//进入待机模式
+void Sys_Standby(void)
+{
+SCB->SCR|=1&lt;&lt;2; //使能 SLEEPDEEP 位 (SYS->CTRL)
+RCC->APB1ENR|=1&lt;&lt;28; //使能电源时钟
+PWR->CSR|=1&lt;&lt;8; //设置 WKUP 用于唤醒
+PWR->CR|=1&lt;&lt;2; //清除 Wake-up 标志
+PWR->CR|=1&lt;&lt;1; //PDDS 置位
+WFI_SET(); //执行 WFI 指令
+}
+这里用到了一个 WFI_SET();函数，该函数其实是在 C 语言里面嵌入一条汇编指令，因为
+CM3 内核的 STM32 支持的 THUMB 指令，并不能内嵌汇编，所以需要通过这个方法来实现汇
+编代码的嵌入。该函数的代码如下：
+//THUMB 指令不支持汇编内联
+//采用如下方法实现执行汇编指令 WFI
+void WFI_SET(void)
+{
+__ASM volatile("wfi");
+}
+在执行完 WFI 指令之后，STM32 就进入待机模式了，系统将停止工作，此时 JTAG 会失效，
+这点请大家在使用的时候要注意。这里顺带介绍 sys.c 里面的另外几个嵌入汇编的代码：
+//关闭所有中断
+void INTX_DISABLE(void)
+{
+__ASM volatile("cpsid i");
+}
+//开启所有中断
+void INTX_ENABLE(void)
+{
+__ASM volatile("cpsie i");
+}
+//设置栈顶地址
+//addr:栈顶地址
+__asm void MSR_MSP(u32 addr)
+{
+MSR MSP, r0 //set Main Stack value
+BX r14
+}
+INTX_DISABLE 和 INTX_ENABLE 用于关闭和开启所有中断，是 STM32 的中断总开关。
+而 MSR_MSP 这个函数用来设置栈顶指针，在 IAP 实验的时候，会用到。
+
+5.2.5 JTAG_Set 函数
+STM32 支持 JTAG 和 SWD 两种仿真接口，他们和普通的 IO 口共用，当需要使用普通 IO
+口的时候，则必须先禁止 JTAG/SWD。STM32 在默认状态下是开启 JTAG 的，所以那些和 JTAG
+共用的 IO 口，在默认状态下是不能做普通 IO 口使用的。我们可以通过 AFIO_MAPR 寄存器的
+24~26 位来修改 STM32 的 JTAG 配置，从而切换为普通 IO 口或者其他状态。AFIO_MAPR 寄
+存器的第 24~26 位描述如图 5.2.5.1 所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-folder-9.png">
+
+<pre>有了上面这个图，我们就可以编写我们的 JTAG 模式配置函数了。JTAG 模式配置函数代码
+如下：
+//JTAG 模式设置,用于设置 JTAG 的模式
+//mode:jtag,swd 模式设置;00,全使能;01,使能 SWD;10,全关闭;
+void JTAG_Set(u8 mode)
+{
+u32 temp;
+temp=mode;
+temp&lt;&lt;=25;
+RCC->APB2ENR|=1&lt;&lt;0; //开启辅助时钟
+AFIO->MAPR&=0XF8FFFFFF; //清除 MAPR 的[26:24]
+AFIO->MAPR|=temp; //设置 jtag 模式
+}
+通过该函数，我们就可以方便的设置 JTAG 的模式了。
+5.2.6 中断管理函数
+CM3 内核支持 256 个中断，其中包含了 16 个内核中断和 240 个外部中断，并且具有 256
+级的可编程中断设置。但 STM32 并没有使用 CM3 内核的全部东西，而是只用了它的一部分。
+STM32 有 84 个中断，包括 16 个内核中断和 68 个可屏蔽中断，具有 16 级可编程的中断优先级。
+而我们常用的就是这 68 个可屏蔽中断，但是 STM32 的 68 个可屏蔽中断，但是在 STM32F103
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+100
+STM32 F1 开发指南( ( 寄存器 版) )
+系列上面，只有 60 个（在互联型产品上才有 68 个，比如 STM32F107）。
+在 MDK 内，与 NVIC 相关的寄存器，MDK 为其定义了如下的结构体：
+typedef struct
+{
+__IO uint32_t ISER[8]; //中断使能寄存器组
+uint32_t RESERVED0[24];
+__IO uint32_t ICER[8]; //中断除能寄存器组
+uint32_t RSERVED1[24];
+__IO uint32_t ISPR[8]; //中断挂起控制寄存器组
+uint32_t RESERVED2[24];
+__IO uint32_t ICPR[8]; //中断解挂控制寄存器组
+uint32_t RESERVED3[24];
+__IO uint32_t IABR[8]; //中断激活标志位寄存器组
+uint32_t RESERVED4[56];
+__IO uint8_t IP[240]; //中断优先级控制寄存器组
+uint32_t RESERVED5[644];
+__O uint32_t STIR; //软件触发中断寄存器组
+} NVIC_Type;
+STM32 的中断在这些寄存器的控制下有序的执行的。只有了解这些中断寄存器，才能方便
+的使用 STM32 的中断。下面重点介绍这几个寄存器：
+ISER[8]：ISER 全称是：Interrupt Set-Enable Registers，这是一个中断使能寄存器组。上面
+说了 CM3 内核支持 256 个中断，这里用 8 个 32 位寄存器来控制，每个位控制一个中断。但是
+STM32 的可屏蔽中断最多只有 68 个（互联型），所以对我们来说，有用的就是三个（ISER[0~2]]），
+总共可以表示 96 个中断。而 STM32 只用了其中的前 68 位。ISER[0]的 bit0~31 分别对应中断
+0~31；ISER[1]的 bit0~32 对应中断 32~63；ISER[2]的 bit0~3 对应中断 64~67；这样总共 68 个中
+断就分别对应上了。你要使能某个中断，必须设置相应的 ISER 位为 1，使该中断被使能(这里
+仅仅是使能，还要配合中断分组、屏蔽、IO 口映射等设置才算是一个完整的中断设置)。具体
+每一位对应哪个中断，请参考 stm32f10x.h 里面的第 170 行处。
+ICER[8]：全称是：Interrupt Clear-Enable Registers，是一个中断除能寄存器组。该寄存器组
+与 ISER 的作用恰好相反，是用来清除某个中断的使能的。其对应位的功能，也和 ICER 一样。
+这里要专门设置一个 ICER 来清除中断位，而不是向 ISER 写 0 来清除，是因为 NVIC 的这些寄
+存器都是写 1 有效的，写 0 是无效的。具体为什么这么设计，请看《CM3 权威指南》第 125 页，
+NVIC 概览一章。
+ISPR[8]：全称是：Interrupt Set-Pending Registers，是一个中断挂起控制寄存器组。每个位
+对应的中断和 ISER 是一样的。通过置 1，可以将正在进行的中断挂起，而执行同级或更高级别
+的中断。写 0 是无效的。
+ICPR[8]：全称是：Interrupt Clear-Pending Registers，是一个中断解挂控制寄存器组。其作
+用与 ISPR 相反，对应位也和 ISER 是一样的。通过设置 1，可以将挂起的中断接挂。写 0 无效。
+IABR[8]：全称是：Interrupt Active Bit Registers，是一个中断激活标志位寄存器组。对应位
+所代表的中断和 ISER 一样，如果为 1，则表示该位所对应的中断正在被执行。这是一个只读寄
+存器，通过它可以知道当前在执行的中断是哪一个。在中断执行完了由硬件自动清零。
+IP[240]：全称是：Interrupt Priority Registers，是一个中断优先级控制的寄存器组。这个寄
+存器组相当重要！STM32 的中断分组与这个寄存器组密切相关。IP 寄存器组由 240 个 8bit 的寄
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+101
+STM32 F1 开发指南( ( 寄存器 版) )
+存器组成，每个可屏蔽中断占用 8bit，这样总共可以表示 240 个可屏蔽中断。而 STM32 只用到
+了其中的 68 个。IP[67]~IP[0]分别对应中断 67~0。而每个可屏蔽中断占用的 8bit 并没有全部使
+用，而是 只用了高 4 位。这 4 位，又分为抢占优先级和子优先级。抢占优先级在前，子优先级
+在后。而这两个优先级各占几个位又要根据 SCB->AIRCR 中的中断分组设置来决定。
+这里简单介绍一下 STM32 的中断分组：STM32 将中断分为 5 个组，组 0~4。该分组的设
+置是由 SCB->AIRCR 寄存器的 bit10~8 来定义的。具体的分配关系如表 5.2.6.1 所示：
+0	 111 	0：4	z       	0 位抢占优先级，4 位响应优先级
+组	 AIRCR[10：8]	 bit[7：4]分配情况	 分配结果
+0 	111 	0：4	 0 位抢占优先级，4 位响应优先级
+1	 110 	1：3  	1 位抢占优先级，3 位响应优先级
+2	 101	 2：2 	2 位抢占优先级，2 位响应优先级
+3	 100 	3：1	 3 位抢占优先级，1 位响应优先级
+4	 011 	4：0	 4 位抢占优先级，0 位响应优先级
+表 5.2.6.1 AIRCR 中断分组设置表
+通过这个表，我们就可以清楚的看到组 0~4 对应的配置关系，例如组设置为 3，那么此时
+所有的 68 个中断，每个中断的中断优先寄存器的高四位中的最高 3 位是抢占优先级，低 1 位是
+响应优先级。每个中断，你可以设置抢占优先级为 0~7，响应优先级为 1 或 0。抢占优先级的
+级别高于响应优先级。而数值越小所代表的优先级就越高。
+这里需要注意两点：第一，如果两个中断的抢占优先级和响应优先级都是一样的话，则看
+哪个中断先发生就先执行；第二，高优先级的抢占优先级是可以打断正在进行的低抢占优先级
+中断的。而抢占优先级相同的中断，高优先级的响应优先级不可以打断低响应优先级的中断。
+结合实例说明一下：假定设置中断优先级组为 2，然后设置中断 3(RTC 中断)的抢占优先级
+为 2，响应优先级为 1。中断 6（外部中断 0）的抢占优先级为 3，响应优先级为 0。中断 7（外
+部中断 1）的抢占优先级为 2，响应优先级为 0。那么这 3 个中断的优先级顺序为：中断 7>中
+断 3>中断 6。
+上面例子中的中断 3 和中断 7 都可以打断中断 6 的中断。而中断 7 和中断 3 却不可以相互
+打断！
+通过以上介绍，我们熟悉了 STM32 中断设置的大致过程。接下来我们介绍如何使用函数
+实现以上中断设置，使得我们以后的中断设置简单化。
+第一个介绍的是 NVIC 的分组函数 MY_NVIC_PriorityGroupConfig，该函数的参数
+NVIC_Group 为要设置的分组号，可选范围为 0~4，总共 5 组。如果参数非法，将可能导致不
+可预料的结果。MY_NVIC_PriorityGroupConfig 函数代码如下：
+//设置 NVIC 分组
+//NVIC_Group：NVIC 分组 0~4 总共 5 组
+void MY_NVIC_PriorityGroupConfig(u8 NVIC_Group)
+{
+u32 temp，temp1;
+temp1=(~NVIC_Group)&0x07;//取后三位
+temp1&lt;&lt;=8;
+temp=SCB->AIRCR; //读取先前的设置
+temp&=0X0000F8FF; //清空先前分组
+temp|=0X05FA0000; //写入钥匙
+temp|=temp1;
+SCB->AIRCR=temp; //设置分组
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+102
+STM32 F1 开发指南( ( 寄存器 版) )
+}
+通过前面的介绍，我们知道 STM32 的 5 个分组是通过设置 SCB->AIRCR 的 BIT[10:8]来实
+现的，而通过 5.2.3 的介绍我们知道 SCB->AIRCR 的修改需要通过在高 16 位写入 0X05FA 这个
+密钥才能修改的，故在设置 AIRCR 之前，应该把密钥加入到要写入的内容的高 16 位，以保证
+能正常的写入 AIRCR。在修改 AIRCR 的时候，我们一般采用读→改→写的步骤，来实现不改
+变 AIRCR 原来的其他设置。以上就是 MY_NVIC_PriorityGroupConfig 函数设置中断优先级分组
+的思路。
+第二个函数是 NVIC 设置函数 MY_NVIC_Init，该函数有 4 个参数，分别为：
+NVIC_PreemptionPriority、NVIC_SubPriority、NVIC_Channel、NVIC_Group。第一个参数
+NVIC_PreemptionPriority 为中断抢占优先级数值，第二个参数 NVIC_SubPriority 为中断子优先
+级数值，前两个参数的值必须在规定范围内，否则也可能产生意想不到的错误。第三个参数
+NVIC_Channel 为中断的编号，最后一个参数 NVIC_Group 为中断分组设置（范围为 0~4）。该
+函数代码如下：
+//设置 NVIC
+//NVIC_PreemptionPriority：抢占优先级
+//NVIC_SubPriority ：响应优先级
+//NVIC_Channel ：中断编号
+//NVIC_Group ：中断分组 0~4
+//注意优先级不能超过设定的组的范围!否则会有意想不到的错误
+//组划分：
+//组 0：0 位抢占优先级，4 位响应优先级
+//组 1：1 位抢占优先级，3 位响应优先级
+//组 2：2 位抢占优先级，2 位响应优先级
+//组 3：3 位抢占优先级，1 位响应优先级
+//组 4：4 位抢占优先级，0 位响应优先级
+//NVIC_SubPriority 和 NVIC_PreemptionPriority 的原则是，数值越小，越优先
+void MY_NVIC_Init(u8 NVIC_PreemptionPriority，u8 NVIC_SubPriority，u8 NVIC_Channel，
+u8 NVIC_Group)
+{
+u32 temp;
+MY_NVIC_PriorityGroupConfig(NVIC_Group);//设置分组
+temp=NVIC_PreemptionPriority&lt;&lt;(4-NVIC_Group);
+temp|=NVIC_SubPriority&(0x0f>>NVIC_Group);
+temp&=0xf; //取低四位
+NVIC->ISER[NVIC_Channel/32]|=(1&lt;&lt;NVIC_Channel%32);
+//使能中断位(要清除的话,相反操作就 OK)
+NVIC->IP[NVIC_Channel]|=temp&lt;&lt;4; //设置响应优先级和抢断优先级
+}
+通过前面的介绍，我们知道每个可屏蔽中断的优先级的设置是在 IP 寄存器组里面的，每个
+中断占 8 位，但只用了其中的 4 个位，以上代码就是根据中断分组情况，来设置每个中断对应
+的高 4 位的数值的。当然在该函数里面还引用了 MY_NVIC_PriorityGroupConfig 这个函数来设
+置分组。其实这个分组函数在每个系统里面只要设置一次就够了，设置多次，则是以最后的那
+一次为准。但是只要多次设置的组号都是一样，就没事。否则前面设置的中断会因为后面组的
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+103
+STM32 F1 开发指南( ( 寄存器 版) )
+变化优先级会发生改变，这点在使用的时候要特别注意！一个系统代码里面，所有的中断分组
+都要统一！！，以上代码对要配置的中断号默认是开启中断的，也就是 ISER 中的值设置为 1 了。
+通过以上两个函数就实现了对 NVIC 的管理和配置。但是外部中断的设置，还需要配置相
+关寄存器才可以。下面就介绍外部中断的配置和使用。
+STM32F103 的 EXTI 控制器支持 19 个外部中断/事件请求。每个中断设有状态位，每个中
+断/事件都有独立的触发和屏蔽设置。STM32F103 的 19 个外部中断为：
+线 0~15：对应外部 IO 口的输入中断。
+线 16：连接到 PVD 输出。
+线 17：连接到 RTC 闹钟事件。
+线 18：连接到 USB 唤醒事件。
+对于外部中断 EXTI 控制 MDK 定义了如下结构体：
+typedef struct
+{
+__IO uint32_t IMR;
+__IO uint32_t EMR;
+__IO uint32_t RTSR;
+__IO uint32_t FTSR;
+__IO uint32_t SWIER;
+__IO uint32_t PR;
+} EXTI_TypeDef;
+通过这些寄存器的设置，就可以对外部中断进行详细设置了。下面我们就重点介绍这些寄
+存器的作用。
+IMR：中断屏蔽寄存器。这是一个 32 寄存器。但是只有前 19 位有效。当位 x 设置为 1 时，
+则开启这个线上的中断，否则关闭该线上的中断。
+EMR：事件屏蔽寄存器，同 IMR，只是该寄存器是针对事件的屏蔽和开启。
+RTSR：上升沿触发选择寄存器。该寄存器同 IMR，也是一个 32 为的寄存器，只有前 19
+位有效。位 x 对应线 x 上的上升沿触发，如果设置为 1，则是允许上升沿触发中断/事件。否则，
+不允许。
+FTSR：下降沿触发选择寄存器。同 RTSR，不过这个寄存器是设置下降沿的。下降沿和上
+升沿可以被同时设置，这样就变成了任意电平触发了。
+SWIER：软件中断事件寄存器。通过向该寄存器的位 x 写入 1，在未设置 IMR 和 EMR 的
+时候，将设置 PR 中相应位挂起。如果设置了 IMR 和 EMR 时将产生一次中断。被设置的 SWIER
+位，将会在 PR 中的对应位清除后清除。
+PR：挂起寄存器。当外部中断线上发生了选择的边沿事件，该寄存器的对应位会被置为 1。
+0，表示对应线上没有发生触发请求。通过向该寄存器的对应位写入 1 可以清除该位。在中断服
+务函数里面经常会要向该寄存器的对应位写 1 来清除中断请求。
+以上就是与中断相关寄存器的介绍，更详细的介绍，请参考《STM32 中文参考手册》第
+138 页，9.3 节 EXTI 寄存器描述这一章。
+通过以上配置就可以正常设置外部中断了，但是外部 IO 口的中断，还需要一个寄存器配
+置，也就是 IO 复用里的外部中断配置寄存器 EXTICR。这是因为 STM32 任何一个 IO 口都可
+以配置成中断输入口，但是 IO 口的数目远大于中断线数（16 个）。于是 STM32 就这样设计，
+GPIOA~GPIOG 的[15:0]分别对应中断线 15~0。这样每个中断线对应了最多 7 个 IO 口，以线 0
+为例：它对应了 GPIOA.0、GPIOB.0、GPIOC.0、GPIOD.0、GPIOE.0、GPIOF.0、GPIOG.0。而
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+104
+STM32 F1 开发指南( ( 寄存器 版) )
+中断线每次只能连接到1个IO口上，这样就需要EXTICR来决定对应的中断线配置到哪个GPIO
+上了。
+EXTICR 在 AFIO 的结构体中定义，如下：
+typedef struct
+{
+__IO uint32_t EVCR;
+__IO uint32_t MAPR;
+__IO uint32_t EXTICR[4];
+} AFIO_TypeDef;
+EXTICR 寄存器组，总共有 4 个，因为编译器的寄存器组都是从 0 开始编号的，所以
+EXTICR[0]~ EXTICR[3]，对应《STM32 中文参考手册》里面的 EXTICR1~ EXTICR 4。每个
+EXTICR 只用了其低 16 位。EXTICR[0]的分配如图 5.2.6.1 所示：
+</pre>
+
+
+<img src="../../src/img/singlechip/stm-folder-10.png">
+
+<pre>比如如我要设置GPIOB.1 映射到中断线1，则只要设置 EXTICR[0]的 bit[7:4]为0001 即可。
+默认都是 0000 即映射到 GPIOA。从图 5.2.6.1 中可以看出，EXTICR[0]只管了 GPIO 的 0~3 端
+口，相应的其他端口由 EXTICR[1~3]管理。具体请参考《STM32 中文参考手册》第 126~128
+页。
+通过对上面的分析我们就可以完成对外部中断的配置了。该函数为 Ex_NVIC_Config，该
+函数有 3 个参数：GPIOx 为 GPIOA~G（0~6），在 sys.h 里面有定义。代表要配置的 IO 口。BITx
+则代表这个 IO 口的第几位。TRIM 为触发方式，低 2 位有效（0x01 代表下降触发；0x02 代表
+上升沿触发；0x03 代表任意电平触发）。其代码如下：
+//外部中断配置函数
+//只针对 GPIOA~G;不包括 PVD，RTC 和 USB 唤醒这三个
+//参数：GPIOx：0~6，代表 GPIOA~G;BITx：需要使能的位;TRIM：触发模式，1，下升沿;
+// 2，上降沿;3，任意电平触发
+//该函数一次只能配置 1 个 IO 口，多个 IO 口，需多次调用
+//该函数会自动开启对应中断，以及屏蔽线
+void Ex_NVIC_Config(u8 GPIOx，u8 BITx，u8 TRIM)
+{
+u8 EXTADDR;
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+105
+STM32 F1 开发指南( ( 寄存器 版) )
+u8 EXTOFFSET;
+EXTADDR=BITx/4; //得到中断寄存器组的编号
+EXTOFFSET=(BITx%4)*4;
+RCC->APB2ENR|=0x01; //使能 io 复用时钟
+AFIO->EXTICR[EXTADDR]&=~(0x000F&lt;&lt;EXTOFFSET);//清除原来设置！！！
+AFIO->EXTICR[EXTADDR]|=GPIOx&lt;&lt;EXTOFFSET;//EXTI.BITx 映射到 GPIOx.BITx
+//自动设置
+EXTI->IMR|=1&lt;&lt;BITx; //开启 line BITx 上的中断
+if(TRIM&0x01)EXTI->FTSR|=1&lt;&lt;BITx; //line BITx 上事件下降沿触发
+if(TRIM&0x02)EXTI->RTSR|=1&lt;&lt;BITx; //line BITx 上事件上升降沿触发}
+Ex_NVIC_Config 完全是按照我们之前的分析来编写的，首先根据 GPIOx 的位得到中断寄
+存器组的编号，即 EXTICR 的编号，在 EXTICR 里面配置中断线应该配置到 GPIOx 的哪个位。
+然后使能该位的中断及事件，最后配置触发方式。这样就完成了外部中断的配置了。从代码中
+可以看到该函数默认是开启中断和事件的。其次还要注意的一点就是该函数一次只能配置一个
+IO 口，如果你有多个 IO 口需要配置，则多次调用这个函数就可以了。
+至此，我们对 STM32 的中断管理就介绍结束了。当然还有中断响应函数，我们这里没有
+介绍，这个在后面的实例中会向大家讲述的。
+5.3 usart 文件夹介绍
+usart 文件夹内包含了 usart.c 和 usart.h 两个文件。这两个文件用于串口的初始化和中断接
+收。这里只是针对串口 1，比如你要用串口 2 或者其他的串口，只要对代码稍作修改就可以了。
+usart.c里面包含了2个函数一个是void USART1_IRQHandler(void);另外一个是void uart_init(u32
+pclk2，u32 bound);里面还有一段对串口 printf 的支持代码，如果去掉，则会导致 printf 无法使
+用，虽然软件编译不会报错，但是硬件上 STM32 是无法启动的，这段代码不要去修改。
+5.3.1 USART1_IRQHandler 函数
+void USART1_IRQHandler(void)函数是串口 1 的中断响应函数，当串口 1 发生了相应的中
+断后，就会跳到该函数执行。这里我们设计了一个小小的接收协议：通过这个函数，配合一个
+数组 USART_RX_BUF[]，一个接收状态寄存器 USART_RX_STA（此寄存器其实就是一个全局
+变量，由作者自行添加。由于它起到类似寄存器的功能，这里暂且称之为寄存器）实现对串口
+数据的接收管理。USART_RX_BUF 的大小由 USART_REC_LEN 定义，也就是一次接收的数据
+最大不能超过 USART_REC_LEN 个字节。USART_RX_STA 是一个接收状态寄存器其各的定义
+如表 5.3.1.1 所示：
+USART_RX_STA
+bit15	 bit14	 bit13~0
+接收完成标志	 接收到0X0D标志	 接收到的有效数据个数
+表 5.3.1.1 接收状态寄存器位定义表
+设计思路如下：
+当接收到从电脑发过来的数据，把接收到的数据保存在 USART_RX_BUF 中，同时在接收
+状态寄存器（USART_RX_STA）中计数接收到的有效数据个数，当收到回车（回车的表示由 2
+个字节组成：0X0D 和 0X0A）的第一个字节 0X0D 时，计数器将不再增加，等待 0X0A 的到来，
+而如果 0X0A 没有来到，则认为这次接收失败，重新开始下一次接收。如果顺利接收到 0X0A，
+
+则标记 USART_RX_STA 的第 15 位，这样完成一次接收，并等待该位被其他程序清除，从而开
+始下一次的接收，而如果迟迟没有收到0X0D，那么在接收数据超过USART_REC_LEN的时候，
+则会丢弃前面的数据，重新接收。函数代码如下：
+#if EN_USART1_RX //如果使能了接收
+//串口 1 中断服务程序
+//注意,读取 USARTx->SR 能避免莫名其妙的错误
+u8 USART_RX_BUF[USART_REC_LEN]; //接收缓冲,最大 USART_REC_LEN 个字节.
+//接收状态
+//bit15，接收完成标志
+//bit14，接收到 0x0d
+//bit13~0，接收到的有效字节数目
+u16 USART_RX_STA=0; //接收状态标记
+void USART1_IRQHandler(void)
+{
+u8 res;
+#if SYSTEM_SUPPORT_OS //如果 SYSTEM_SUPPORT_OS 为真，则需要支持 OS.
+OSIntEnter();
+#endif
+if(USART1->SR&(1&lt;&lt;5)) //接收到数据
+{
+res=USART1->DR;
+if((USART_RX_STA&0x8000)==0)//接收未完成
+{
+if(USART_RX_STA&0x4000)//接收到了 0x0d
+{
+if(res!=0x0a)USART_RX_STA=0;//接收错误,重新开始
+else USART_RX_STA|=0x8000; //接收完成了
+}else //还没收到 0X0D
+{
+if(res==0x0d)USART_RX_STA|=0x4000;
+else
+{
+USART_RX_BUF[USART_RX_STA&0X3FFF]=res;
+USART_RX_STA++;
+if(USART_RX_STA>(USART_REC_LEN-1))USART_RX_STA=0;
+//接收数据错误,重新开始接收
+}
+}
+}
+}
+#if SYSTEM_SUPPORT_OS //如果 SYSTEM_SUPPORT_OS 为真，则需要支持 OS.
+OSIntExit();
+#endif
+ALIENTEK 战舰 STM32F103 V3 开发板教程
+107
+STM32 F1 开发指南( ( 寄存器 版) )
+}
+#endif
+EN_USART1_RX 和 USART_REC_LEN 都是在 usart.h 文件里面定义的，当需要使用串口接
+收的时候，我们只要在 usart.h 里面设置 EN_USART1_RX 为 1 就可以了。不使用的时候，设置，
+EN_USART1_RX 为 0 即可，这样可以省出部分 sram 和 flash，我们默认是设置 EN_USART1_RX
+为 1，也就是开启串口接收的。
+SYSTEM_SUPPORT_OS，则是用来判断是否使用操作系统（OS），如果使用了 OS，则调
+用 OSIntEnter 和 OSIntExit 函数，如果没有使用 OS，则不调用这两个函数（这两个函数用于实
+现中断嵌套处理，由 UCOS 提供，这里我们先不理会）。
+5.3.2 uart_init 函数
+void uart_init(u32 pclk2，u32 bound)函数是串口 1 初始化函数。该函数有 2 个参数，第一个为
+pclk2，是系统的时钟频率。第二个参数为需要设置的波特率，例如 9600，115200 等。而这个
+函数的重点就是在波特率的设置，由于 STM32 采用了分数波特率，所以 STM32 的串口波特率
+设置范围很宽，而且误差很小。
+STM32 的每个串口都有一个自己独立的波特率寄存器 USART_BRR，通过设置该寄存器就
+可以达到配置不同波特率的目的。其各位描述如图 5.3.2.1 所示：
+</pre>
+
+
+<img src="../../src/img/singlechip/stm-folder-11.png">
+
+<pre>前面提到 STM32 的分数波特率概念，其实就是在这个寄存器（USART_BRR）里面体现的。
+USART_BRR 的最低 4 位（位[3:0]）用来存放小数部分 DIV_Fraction，紧接着的 12 位（位[15：
+4]）用来存放整数部分 DIV_Mantissa，最高 16 位未使用。
+这里，我们简单介绍一下波特率的计算，STM32 的串口波特率计算公式如下：</pre>
+
+<img src="../../src/img/singlechip/stm-folder-12.png">
+
+<pre>上式中，分子 是给串口的时钟（PCLK1 用于 USART2、3、4、5，PCLK2 用于 USART1）；
+USARTDIV 是一个无符号定点数。我们只要得到 USARTDIV 的值，就可以得到串口波特率寄
+存器 USART1->BRR 的值，反过来，我们得到 USART1->BRR 的值，也可以推导出 USARTDIV
+的值。但我们更关心的是如何从 USARTDIV 的值得到 USART_BRR 的值，因为一般我们知道
+的是波特率，和 PCLKx 的时钟，要求的就是 USART_BRR 的值。
+下面我们来介绍如何通过 USARTDIV 得到串口 USART_BRR 寄存器的值。假设我们的串
+口 1 要设置为 115200 的波特率，而 PCLK2 的时钟为 72M。这样，我们根据上面的公式有：
+USARTDIV=72000000/(115200*16)= 39.0625
+那么得到：
+DIV_Fraction=16*0. 0625=1=0X01;
+DIV_Mantissa=39=0X27;
+这样，我们就得到了 USART1->BRR 的值为 0X0271。只要设置串口 1 的 BRR 寄存器值为
+0X0271 就可以得到 115200 的波特率。
+当然，并不是任何条件下都可以随便设置串口波特率的，在某些波特率和 PCLK2 频率下，
+还是会存在误差的，具体可以参考《STM32 中文参考手册》的第 525 页的表 176。
+接下来，我们就可以初始化串口了，需要注意的是这里初始化串口是按 8 位数据格式，1
+位停止位，无奇偶校验位的。具体代码如下：
+//初始化 IO 串口 1
+//pclk2:PCLK2 时钟频率(Mhz)
+//bound:波特率
+void uart_init(u32 pclk2,u32 bound)
+{
+float temp;
+u16 mantissa;
+u16 fraction;
+temp=(float)(pclk2*1000000)/(bound*16);//得到 USARTDIV
+mantissa=temp; //得到整数部分
+fraction=(temp-mantissa)*16; //得到小数部分
+mantissa&lt;&lt;=4;
+mantissa+=fraction;
+RCC->APB2ENR|=1&lt;&lt;2; //使能 PORTA 口时钟
+RCC->APB2ENR|=1&lt;&lt;14; //使能串口时钟
+GPIOA->CRH&=0XFFFFF00F;//IO 状态设置
+GPIOA->CRH|=0X000008B0;//IO 状态设置
+RCC->APB2RSTR|=1&lt;&lt;14; //复位串口 1
+RCC->APB2RSTR&=~(1&lt;&lt;14);//停止复位
+//波特率设置
+USART1->BRR=mantissa; // 波特率设置
+USART1->CR1|=0X200C; //1 位停止,无校验位.
+#if EN_USART1_RX //如果使能了接收
+//使能接收中断
+USART1->CR1|=1&lt;&lt;5; //接收缓冲区非空中断使能
+MY_NVIC_Init(3,3,USART1_IRQn,2);//组 2，最低优先级
+#endif
+}
+上面的代码，就实现了对串口 1 波特率的设置。通过该函数的初始化，我们就可以得到在
+当前频率（pclk2）下得到自己想要的波特率。
+</pre>
+
+
+</body>
+</html>

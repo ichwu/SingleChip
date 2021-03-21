@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>窗口看门狗</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">窗口看门狗</div>
+<pre><code class="language-html line-numbers">WWDG通常用来监测由外部干扰或不可预见的逻辑条件造成的应用程序背离正常的运行序列而产生的软件故障
+WWDG的递减计数器在特定时间范围内被刷新，则不会产生MCU复位
+
+相关的寄存器有：WWDG_CR    WWDG_CFR     WWDG_SR
+	WWDG_CR  低8位有效  bit7 为看门狗使能位 bit6~0 为计数器值 当该值由0x40变为0x3F时 将产生复位
+	WWDG_CFR  低10位有效  bit9 为 EWI：提前唤醒中断 一般用该位设置中断 在最小时间113us内重新写入WWDG_CR
+							  bit8~bit7：WDGTB时基（预分频系数）
+							  bit6~bit0：7位窗口值 用来与递减计数器进行比较的窗口值
+	WWDG_SR   状态寄存器 bit0有效 当计数器到达0x40h时 硬件置1 软件清0
+	
+	
+窗口看门狗使用步骤：
+		1）使能WWDG时钟    （WWDG使用PCLK1的时钟）
+		2）设置WWDG_CR和WWDG_CFR 的值
+		3）开启WWDG中断并分组
+		4）编写中断服务函数  函数中要清空EWI位
+		
+void WWDG_Init（u8 tr， u8 wr， u8 fprer）                   //tr  :T[6:0] 计数器值
+													      //wr :W[6:0] 窗口值
+													      //fprer  :WDGTB  分频系数
+</code></pre>
+
+</body>
+</html>

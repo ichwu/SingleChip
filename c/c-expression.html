@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>C 运算符、表达式、语句</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/c.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">C 运算符、表达式、语句</div>
+<pre><code class="language-html line-numbers"></code></pre>
+<p>基本运算符： = + - * /</p>
+<p>C标准数学库提供了pow（）函数用于指数运算  如pow（3.5，2.2）返回3.5的2.2次方</p>
+
+<p>用于存储值的数据存储区域统称为数据对象（date object）</p>
+<p>左值（lvalue)是用于标识或定位存储位置的标签   对象是指实际的数据存储</p>
+<p>右值（rvalue)是指能赋值给可修改左值的量</p>
+
+<h3>运算符优先级</h3>
+<img src="../../src/img/c-expression.png" width="900px">
+
+<p>求模运算符 modulus operator  %</p>
+<p>i++  i先进行运算 最后自增1</p>
+<p>++i  i先自增1 最后进行运算</p>
+<p>--同理</p>
+
+<p>例子</p>
+<p> i  = 2;</p>
+<p>while( ++i &lt; 5.5)   推荐用++i</p>
+<p>3 4 5 </p>
+
+<p>如果一个变量出现在一个函数的多个参数中 不要使用++or--</p>
+<p>如果一个变量多次出现在一个表达式中 不要使用++or--</p>
+
+<h3>自动类型转换</h3>
+<p>1，当类型转换出现在表达式时 都是从较小类型转换为较大类型</p>
+<p>	类型的级别由高到低：long double, double,</p>
+<p>	float, unsigned long long, long long, unsigned int, int</p>
+<p>	特殊的是当long和int的类型大小相同时 unsigned int 比 long级别高</p>
+<p>2，涉及两种类型的运算 两个值会被分别转换为两种类型的更高级别</p>
+<p>3，在赋值表达式运算中 计算的最终结果会被转换为被赋值变量的类型,在这个过程中可能导致升级或降级</p>
+<p>4，当作为函数参数传递是， char和short被转换成int float被转换成    double 函数原型会覆盖自动升级</p>
+
+<h3>待赋值的值与目标类型不匹配时，规则如下。</h3>
+<p>1.目标类型是无符号整型，且待赋的值是整数时，额外的位将被忽略。</p>
+<p>例如，如果目标类型是 8 位unsigned char，待赋的值是原始值求模256。</p>
+<p>2.如果目标类型是一个有符号整型，且待赋的值是整数，结果因实现而异。</p>
+<p>3.如果目标类型是一个整型，且待赋的值是浮点数，该行为是未定义的</p>
+
+<h3>文件输入输出</h3>
+<img src="../../src/img/c-file.png" width="900px">
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>C++ 基础</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/c.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">C++ 基础</div>
+<pre><code class="language-html line-numbers"实例： 一个书店  卖书 老板  档案  记录
+档案-》所有记录  单一记录 该书的销售记录 
+数据项：ISBN  （国际标准图书号码）   
+	销售数量： 4
+	销售金额：？
+
+应用： 查询   每本书的销售数量 销售额 平均售价
+
+标准C++程序
+#include &lt;iostream>
+int main ( )
+{
+	std::cout &lt;&lt; "Hello World" ;
+	return 0;
+}
+
+调用iostream数据类型  含istream ostream  含对象cout  和 cin 还有ceer clog     
+	操作符 endl （特殊值） 作用  内存缓冲区 to 屏幕 换行
+：：作用域运算符
+
+举例
+
+cout &lt;&lt;  "/*";
+cout &lt;&lt; "*/";
+cout &lt;&lt; /* "*/" */;         error  lost "
+cout &lt;&lt; /* "*/" /* "/*" */;
+
+
+
+int sum = 0, value = 0;
+while (cin >> value)  sum += value;
+cout &lt;&lt; "sum is " &lt;&lt; sum &lt;&lt; endl;
+cin >> value 将始终为真  除非遇到文件结束符 or 接受一个不为int的数  表达式将为false
+windows中文件结束符为ctrl + Z   在Unix中包括Mac OS 中为 ctrl + D
+
+ 定义一个Sales_item类  包含头文件Sales_item.h
+Sales_item like 内置类型int 可以
+：调用isbn（）函数从对象提取书号
+：用运算符>>  &lt;&lt;  来读写该类的对象
+：用 = 赋值 该类对象
+：用 +  += 相加对象 （对象需有相同ISBN  书册 和 金额分别相加
+
+Sales_item book;
+cin >> book;          //输入 ISBN 数量 单价
+cout &lt;&lt; book;     //输出 ISBN 数量 销售额 平均价
+0-34-x 4 24.9
+0-32-x 4 99.96 24.9
+
+
+相加
+Sales_item item1, item2;
+cin >> item1 >> item2;
+cout &lt;&lt; item1 + item2 &lt;&lt; endl; 
+in: 0-34-x 3 20
+      0-34-x 2 25
+out: 0-34-x 5 110 22
+
+重定向  $ additem &lt;infile >outfile        
+</code></pre>
+
+</body>
+</html>

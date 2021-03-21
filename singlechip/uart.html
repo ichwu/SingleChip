@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>UART</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">UART</div>
+<p>Universal Asynchronous Receiver/Transmitter 通用异步收发器</p>
+<img src="../../src/img/singlechip/uart-1.png">
+<img src="../../src/img/singlechip/uart-2.png">
+<br>STC89C52 P3^0为RXD
+<br>	           P3^1为TXD
+<br>baud：波特率是发送二进制位的速率      发送一位二进制的时间为1/baud
+<br>IO口通信分单工通信 半双工通信（不同时） 全双工通信
+<br>
+
+<pre>
+    SCON 串行控制寄存器 地址0x98 可位寻址
+7	SM0	SM0和SM1共同决定0~3共4种模式 （常用模式1）
+6	SM1	
+5	SM2	多机通信控制位 模式1直接清0
+4	REM	由软件置位使能接收 软件清0则禁止接收
+3	TB8	模式2和3中要发送的第9位数据
+2	RB8	模式2和3中要接收的第9位数据 模式1用来接收停止位
+1	TI	发送中断标志位 当发送电路发送到停止位的中间时 由硬件置1 必须通过软件清0
+0	RI	接收中断标志位 当接收电路接收到停止位的中间时 由硬件置1 必须通过软件清0
+
+在串口模块中有一个专门的波特率发生器用来控制发送和接收数据的速率
+对于STC89C52单片机 这个波特率发生器只能由T1或T2产生
+如果要用T2 则需要配置额外的寄存器 默认使用T1的模式2（自动重载模式）
+定时器的重载值 TH1=TL1=256-晶振值/12/2/16/波特率
+和波特率有关的还有一个寄存器 即电源管理寄存器PCON
+它的最高位可以把波特率提高一倍 令PCON |=0x80；则TH1=TL1=256-晶振值/12/16/波特率
+串口模块将一位数据采集16次 取7 8 9 次 有两次是高电平则认定该数据为1
+
+串口通信的发送和接收电路在物理上有两个名字相同的SBUF寄存器 地址也是0x99
+其中一个用来作发送缓冲 一个用来作接收缓冲 互不干扰 因此可以实现UART的全双工通信 
+逻辑上 我们每次只操作SBUF 单片机会自动根据对它执行的是读还是写操作来选择是接收SBUF还是发送SBUF
+
+一般情况下，我们编写串口通信程序的基本步骤如下所示：
+1、配置串口为模式 1。
+2、配置定时器 T1 为模式 2，即自动重装模式。
+3、根据波特率计算 TH1 和 TL1 的初值，如果有需要可以使用 PCON 进行波特率加倍。
+4、打开定时器控制寄存器 TR1，让定时器跑起来
+
+13.5 串口通 信机制和实用的串口例程
+我们前边学串口通信的时候，比较注重的是串口底层时序上的操作过程，所以例程都是简单的收发字符或者字符串。在实际应用中，往往串口还要和电脑上的上位机软件进行交互，
+实现电脑软件发送不同的指令，单片机对应执行不同操作的功能，这就要求我们组织一个比较合理的通信机制和逻辑关系，用来实现我们想要的结果。
+
+本节所提供程序的功能是，通过电脑串口调试助手下发三个不同的命令，第一条指令：buzz on 可以让蜂鸣器响；第二条指令：buzz off 可以让蜂鸣器不响；第三条指令：showstr ，
+这个命令空格后边，可以添加任何字符串，让后边的字符串在 1602 液晶上显示出来，同时不管发送什么命令，单片机收到后把命令原封不动的再通过串口发送给电脑，以表示“我收
+到了„„你可以检查下对不对”。这样的感觉是不是更像是一个小项目了呢？
+
+对于串口通信部分来说，单片机给电脑发字符串好说，有多大的数组，我们就发送多少个字节即可，但是单片机接收数据，接收多少个才应该是一帧完整的数据呢？数据接收起始
+头在哪里，结束在哪里？这些我们在接收到数据前都是无从得知的。那怎么办呢？
+
+我们的编程思路基于这样一种通常的事实：当需要发送一帧（多个字节）数据时，这些数据都是连续不断的发送的，即发送完一个字节后会紧接着发送下一个字节，期间没有间隔
+或间隔很短，而当这一帧数据都发送完毕后，就会间隔很长一段时间（相对于连续发送时的间隔来讲）不再发送数据，也就是通信总线上会空闲一段较长的时间。
+
+于是我们就建立这样一种程序机制：设置一个软件的总线空闲定时器，这个定时器在有数据传输时（从单片机接收角度来说就是接收到数据时）清零，而在总线空闲时（也就是没有接收到数据时）时累加，当它累加到一定时间（例程里是 30ms）后，我们就可以认定一帧完整的数据已经传输完毕了，于是告诉其它程序可以来处理数据了，本次的数据处理完后就恢复到初始状态，再准备下一次的接收。
+
+那么这个用于判定一帧结束的空闲时间取多少合适呢？它取决于多个条件，并没有一个固定值，我们这里介绍几个需要考虑的原则：第一，这个时间必须大于波特率周期，
+很明显我们的单片机接收中断产生是在一个字节接收完毕后，也就是一个时刻点，而其接收过程我们的程序是无从知晓的，因此在至少一个波特率周期内你绝不能认为空闲已经时间达
+到了。第二，要考虑发送方的系统延时，因为不是所有的发送方都能让数据严格无间隔的发送，因为软件响应、关中断、系统临界区等等操作都会引起延时，所以还得再附加几个到十
+几个 ms 的时间。我们选取的 30ms 是一个折中的经验值，它能适应大部分的波特率（大于1200）和大部分的系统延时（PC 机或其它单片机系统）情况。
+我先把这个程序最重要的 UART.c 文件中的程序贴出来，一点点给大家解析，这个是实际项目开发常用的用法，大家一定要认真弄明白
+
+</pre>
+</body>
+</html>

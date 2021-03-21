@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>Hardware</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">Hardware</div>
+
+<img src="../../src/img/singlechip/hardware-1.png">
+<br>N为箭头 发射极在上 123   EBC
+<br>0.7v降压 电流控制
+<br>饱和：b极电流>bc极电流/放大倍数（100）
+
+<img src="../../src/img/singlechip/hardware-2.png">
+<br>74HC245 双向电流缓冲器 
+<br>DIR为方向引脚 DIR=1 则AB电平一致
+<br>OE为使能引脚 上边一横代表0有效
+
+
+<img src="../../src/img/singlechip/hardware-3.png">
+<img src="../../src/img/singlechip/hardware-4.png">
+<br>STC89C52  FLASH=8K  RAM=512Bytes
+<br>LED 1.8v~2.2v  1mA~10mA
+<br>可以用 100nf 电容消除高频信号干扰
+<br>时间单位   1 s = 103 ms = 106 us = 109 ns = 1012 ps
+<br>电容单位   1 F=106 uF=109 nF=1012 pF
+<br>F G J K L M代表误差
+<br>
+<br>1UF=107pF  
+<br>
+
+<img src="../../src/img/singlechip/hardware-5.png">
+<br>无源晶振crystal  有源晶振oscillate
+<br>RST脚只要接收到2us高电平即复位，低电平正常工作
+<br>加R60电阻是为了减缓电容短路时产生的电流冲击（电磁干扰）
+<br>	1：当上电时 电容充电到5v的0.7倍需t=1.2RC 电压由0到3.5v
+<br>	     VRST=VR31 且由5v降到1.5v  （1.5~5v对于STC89C52来说是高电平）
+<br>	     电压继续变化 直到电容电压为5v RST电压为0v 此时单片机正常工作
+<br>	2：当按下开关时，电容电压由5v开始下降，RST电压由0v升高，单片机复位
+<br>		开关弹起时为上电过程                       
+<br>
+
+
+<img src="../../src/img/singlechip/hardware-6.png">
+<br>单片机的IO口状态有准双向 开漏 强推勉 高阻态
+<br>三极管靠电流驱动 MOS管靠电压驱动
+<br>T1相当于PNP T2相当于NPN
+<br>STC89C52单片机P2为准双向IO口 要想读取按键状态 必须输出1 关闭MOS管
+<br>上拉电阻的作用：
+<br>	OC门要输出高电平 必须加上拉电阻
+<br>	STC89C52内部上拉电阻为20K 最大输出电流为250uA 加上拉电阻可以增大驱动能力
+<br>	在电平转换电路中 上拉电阻可以限流
+<br>	单片机未使用的引脚 如总线引脚 引脚悬空时 容易受电磁干扰 增加功耗 加上/下拉电阻可以有效抵制电磁干扰
+<br>上拉电阻越大 驱动能力越强 但功耗越高 在开漏输出时 过大的上拉电阻会导致信号上升沿变缓 一般选用1~10K电阻
+
+<img src="../../src/img/singlechip/hardware-7.png">
+<img src="../../src/img/singlechip/hardware-8.png">
+<img src="../../src/img/singlechip/hardware-9.png">
+<br>步进电机分反应式 永磁式 混合式
+<br>28BYJ48代表28mm 步进 永磁式 减速 4相8拍
+<br>此时14转子与C相绕组的夹角为11.25° 每次通电一个绕组 经过8个4节拍后定子转过一周 称单相绕组通电四节拍
+<br>在上述每两个节拍间插入一个节拍（双绕组通电）就会变为8个节拍 步进角度为5.625° 扭矩更大
+<br>除单四拍 八拍 还有双四拍（将单绕组通电换成双绕组通电）
+<br>
+<br>步进电机的5根线 红 橙 黄 粉 蓝 对应 VCC A B C D
+<br>8拍工作模式通电顺序为A AB B BC C CD D DA A
+<br>
+<br>若MC0对应P1^0 要导通A相 P1的低4位应为0b1110（0xE）
+<br>因此8拍控制代码为
+<br>unsigned char code BeatCode[] = {0xE, 0xC, 0xD, 0x9, 0xB, 0x3, 0x7, 0x6};
+<br>该电机的启动频率为>=550P.S.S(每秒脉冲数） 即间隔应大于1/550s（1.8ms）
+
+</body>
+</html>

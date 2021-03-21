@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>电容触摸</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">电容触摸</div>
+
+<pre>利用战舰 STM32F103 上的触摸按键（TPAD），来实现对 DS1 的亮灭控</pre>
+
+<img src="../../src/img/singlechip/stm-touch-1.png">
+
+<pre>这里我们使用的是检测电容充放电时间的方法来判断是否有触摸，图中 R 是外接的电容充
+电电阻，Cs 是没有触摸按下时 TPAD 与 PCB 之间的杂散电容。而 Cx 则是有手指按下的时候，
+手指与 TPAD 之间形成的电容。图中的开关是电容放电开关（由实际使用时，由 STM32F1 的
+IO 代替）。
+先用开关将 Cs（或 Cs+Cx）上的电放尽，然后断开开关，让 R 给 Cs（或 Cs+Cx）充电，
+当没有手指触摸的时候，Cs 的充电曲线如图中的 A 曲线。而当有手指触摸的时候，手指和 TPAD
+之间引入了新的电容 Cx，此时 Cs+Cx 的充电曲线如图中的 B 曲线。从上图可以看出，A、B
+两种情况下，Vc 达到 Vth 的时间分别为 Tcs 和 Tcs+Tcx。
+其中，除了 Cs 和 Cx 我们需要计算，其他都是已知的，根据电容充放电公式：
+Vc=V0*(1-e^(-t/RC))
+其中 Vc 为电容电压，V0 为充电电压，R 为充电电阻，C 为电容容值，e 为自然底数，t 为
+充电时间。根据这个公式，我们就可以计算出 Cs 和 Cx。利用这个公式，我们还可以把战舰开
+发板作为一个简单的电容计，直接可以测电容容量了，有兴趣的朋友可以捣鼓下。
+在本章中，其实我们只要能够区分 Tcs 和 Tcs+Tcx，就已经可以实现触摸检测了，当充电
+时间在 Tcs 附近，就可以认为没有触摸，而当充电时间大于 Tcs+Tx 时，就认为有触摸按下（Tx
+为检测阀值）。
+本章，我们使用 PA1(TIM5_CH2)来检测 TPAD 是否有触摸，在每次检测之前，我们先配置
+PA1 为推挽输出，将电容 Cs（或 Cs+Cx）放电，然后配置 PA1 为浮空输入，利用外部上拉电阻
+给电容 Cs(Cs+Cx)充电，同时开启 TIM5_CH2 的输入捕获，检测上升沿，当检测到上升沿的时
+候，就认为电容充电完成了，完成一次捕获检测。
+在 MCU 每次复位重启的时候，我们执行一次捕获检测（可以认为没触摸），记录此时的值，
+记为 tpad_default_val，作为判断的依据。在后续的捕获检测，我们就通过与 tpad_default_val 的
+对比，来判断是不是有触摸发生
+</pre>
+
+<img src="../../src/img/singlechip/stm-touch-2.png">
+<pre>软件设计我们在之前的工程上面增加，由于本章我们用不到 timer.c，所以先删掉 timer.c。
+然后在 HARDWARE 文件夹下新建 TPAD 的文件夹。然后打开 USER 文件夹下的工程，新建一
+个 tpad.c 的文件和 tpad.h 的头文件，保存在 TAPD 文件夹下，并将 TPAD 文件夹加入头文件包
+含路径。
+我们在 tpad.c 里输入如下代码</pre>
+
+<img src="../../src/img/singlechip/stm-touch-3.png">
+<img src="../../src/img/singlechip/stm-touch-4.png">
+<img src="../../src/img/singlechip/stm-touch-5.png">
+<img src="../../src/img/singlechip/stm-touch-6.png">
+<img src="../../src/img/singlechip/stm-touch-7.png">
+<img src="../../src/img/singlechip/stm-touch-8.png">
+
+<pre>此部分代码包含 6 个函数，我们将介绍其中 4 个比较重要的函数：TIM5_CH2_Cap_Init、
+TPAD_Get_Val、TPAD_Init 和 TPAD_Scan。
+首先介绍TIM5_CH2_Cap_Init函数，该函数和上一章的输入捕获函数基本一样，不同的是，
+这里我们设置的是 CH2 通道，并开启了输入滤波器。通过该函数的设置，我们将可以捕获 PA1
+上的上升沿。
+我们再来看看 TPAD_Get_Val 函数，该函数用于得到定时器的一次捕获值。该函数先调用
+TPAD_Reset，将电容放电，同时设置 TIM5_CNT 寄存器为 0，然后死循环等待发生上升沿捕获
+（或计数溢出），将捕获到的值（或溢出值）作为返回值返回。
+接着我们介绍 TPAD_Init 函数，该函数用于初始化输入捕获，并获取默认的 TPAD 值。该
+函数有一个参数，用来传递分频系数，其实是为了配置 TIM5_CH2_Cap_Init 的分频系数，该值
+设置的越小，触摸越灵敏，不过也越容易受干扰。在该函数中连续 10 次读取 TPAD 值，将这
+些值升序排列后取中间 6 个值再做平均（这样做的目的是尽量减少误差），并赋值给
+tpad_default_val，用于后续触摸判断的标准。
+最后，我们来看看 TPAD_Scan 函数，该函数用于扫描 TPAD 是否有触摸，该函数的参数
+mode，用于设置是否支持连续触发。返回值如果是 0，说明没有触摸，如果是 1，则说明有触
+摸。该函数同样包含了一个静态变量，用于检测控制，类似第八章的 KEY_Scan 函数。所以该
+函数同样是不可重入的。在函数中，我们通过连续读取 3 次(不支持连续按的时候)TPAD 的值，
+取这他们的最大值，和 tpad_default_val+TPAD_GATE_VAL 比较，如果大于则说明有触摸，如
+果小于，则说明无触摸。其中 tpad_default_val 是我们在调用 TPAD_Init 函数的时候得到的值，
+而 TPAD_GATE_VAL 则是我们设定的一个门限值（这个大家可以通过实验数据得出，根据实际
+情况选择适合的值就好了，越小越灵敏），这里我们设置为 100。该函数，我们还做了一些其他
+的条件限制，让触摸按键有更好的效果，这个就请大家看代码自行参悟了。
+我们将 tpad.c 文件保存，然后加入到 HARDWARE 组下。接下来，在 tpad.h 文件里，我们
+输入如下代码
+</pre>
+<img src="../../src/img/singlechip/stm-touch-9.png">
+<pre>修改主程序里面的 main 函数如下：</pre>
+
+<img src="../../src/img/singlechip/stm-touch-10.png">
+<img src="../../src/img/singlechip/stm-touch-11.png">
+<pre>打开串口调试助手，每次复位的时候，会收到 tpad_default_val 的值，一般为
+150 左右。</pre>
+
+</body>
+</html>

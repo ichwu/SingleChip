@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>LCD1602</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">LCD1602</div>
+<pre><code class="language-html line-numbers"></code></pre>
+<br>VSS	   电源地
+<br>VDD	   电源正
+<br>VL     液晶显示偏压信号 可接3.3K左右下拉电阻
+<br>RS     数据/命令   H/L
+<br>R/W	   读/写   H/L
+<br>E      使能
+<br>D0~D7  Data IO
+<br>BLA	   背光正
+<br>BLK	   背光负  可接220电阻
+<br>
+<img src="../../src/img/singlechip/lcd1602-1.png" width="800px">
+
+<br>液晶内部含RAM 当我们给液晶发送命令/数据时 需要先将其保存在缓存中 然后再写到内部寄存器/RAM中 这需要一定时间 因此在读写操作前需要读一下液晶的状态
+<br>
+<br>液晶内部带了80bytes的显示RAM用来存储数据
+<br>第一行0x00到0x0F与液晶第一行16个字符显示位置相对应 第二行同理
+<br>液晶能显示ASCII码
+<br>
+<br>液晶内部有一个数据指针 它指向哪里 我们写的那个数据就会送到相应地址
+<br>液晶内部有一个状态指针 bit7 bit6~bit0  当bit7为1时表示液晶忙 bit6~bit0为当前数据的指针的值
+
+<h3>1602液晶指令</h3>
+<br>1：写指令 0x38 设置16*2 显示 5*7点阵 8位数据接口
+<br>2：0b00001DCB  DCB全是1表示 开显示 显示光标 光标闪烁
+<br>3：0b000001NS   N=1表示读或写一个字符后 指针加1 光标加1
+<br>				   N=0表示读或写一个字符后 指针减1 光标减1
+<br>				    S=1表示写一个字符后（N=1）整屏左移 （N=0）整屏右移
+<br>				    S=0表示写一个字符后 整屏显示不移动
+<br>4：0x01  数据指针清零 显示清零
+<br>   0x02   数据指针清零 显示不清零
+<br>5：0b1 + RAM地址 读写数据前都要先设置好地址
+
+
+<img src="../../src/img/singlechip/lcd1602-2.png" width="800px">
+<br>先看读操作 因为是读操作 所以R/W要先拉高电平 而不管它原来是读操作还是写操作 RS可以是0/1 当RS和R/W经过tsp1时间后E才升高电平 再过tD时间LCD1602就输出DB有效数据 我们就可以读DB的数据 读完后我们将E拉低 经过一段时间后RS R/W才可以变化 对于时间变化要求 可以在Datesheet中找到
+<br>整体上 器件都是有一个最快速度的限制 而没有最慢限制
+<br>所以 当换用高速单片机时 需要加入软件延时来满足较慢的时序要求
+
+
+
+<h3>1602的基本操作时序 一共有4个</h3>
+<br>	 首先把用到的总线接口做一个统一声明
+<br>	#difine LCD1602_DB P0
+<br>	sbit LCD1602_RS = P1^0;
+<br>	sbit LCD1602_RW = P1^1;
+<br>	sbit LCD1602_E = P1^2;
+<br>	
+<br>	1，读状态（发出命令 我要读状态）
+<br>	LCD1602_DB = 0xFF;  //单片机读外部状态前 必须先保证自己是高电平
+<br>	LCD1602_RS = 0;
+<br>	LCD1602_RW = 1;
+<br>	LCD1602_E = 1;
+<br>	do {
+<br>		LCD1602_E = 1;  // 打开开关
+<br>		sta = LCD1602_DB;   //将液晶的状态字存到sta
+<br>		LCD1602_E = 0; //关闭开关
+<br>	} while (sta & 0x80);  //当bit7 = 1 时表示液晶正忙 重复检测直到不为0
+<br>	
+<br>	2，读数据  （不常用）
+<br>	   RS = H； R/W = H； E = H；
+<br>	
+<br>	3，写指令
+<br>	  RS = L； R/W = L； D0~D7 = 指令码； E = 高脉冲；
+<br>	  首先要保证E引脚为低电平 1602液晶只要没有接收到E引脚的使能控制 它都不会来读总线上的信号的
+<br>	1602只要检测到高脉冲中的下降沿 并且检测到RS=L；R/W=L； 就马上来读取D0~D7的数据 完成写指令
+<br>	 4，写数据
+<br>	   RS = H； R/W = L； D0~D7 = 数据； E = 高脉冲；
+
+</body>
+</html>

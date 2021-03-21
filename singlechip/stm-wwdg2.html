@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>窗口看门狗WWDG</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">窗口看门狗WWDG</div>
+
+<pre>窗口看门狗（WWDG）通常被用来监测由外部干扰或不可预见的逻辑条件造成的应用程序背离正常的运行序列而产生的软件故障。除非递减计数器的值在 T6 位（WWDG->CR 的第六位）变成 0 前被刷新，看门狗电路在达到预置的时间周期时，会产生一个 MCU 复位。在递减计数
+器达到窗口配置寄存器(WWDG->CFR)数值之前，如果 7 位的递减计数器数值(在控制寄存器中)被刷新， 那么也将产生一个 MCU 复位。这表明递减计数器需要在一个有限的时间窗口中被刷新。他们的关系可以用图 12.1.1 来说明：
+</pre>
+
+<img src="../../src/img/singlechip/stm-wwdg-1.png">
+
+<pre>T[6:0]就是 WWDG_CR 的低七位，窗口看门狗的计数器， 
+W[6:0]即是 WWDG->CFR 的低七位。窗口看门狗的上窗口，下窗口值是固定的（0X40）。
+当窗口看门狗的计数器在上窗口值之外被刷新，或者低于下窗口值都会产生复位。上窗口值（W[6:0]）是由用户自己设定的，根据实际要求来设计窗口值，但是一定要确保窗口值大于 0X40，否则窗口就不存在了。
+
+窗口看门狗的超时公式如下：
+Twwdg=(4096×2^WDGTB×(T[5:0]+1)) /Fpclk1;
+Twwdg：WWDG 超时时间（单位为 ms）
+Fpclk1：APB1 的时钟频率（单位为 Khz）
+WDGTB：WWDG 的预分频系数
+T[5:0]：窗口看门狗的计数器低 6 位
+根据上面的公式，假设 Fpclk1=36Mhz，那么可以得到最小-最大超时时间表如表 12.1.1 所示</pre>
+
+<img src="../../src/img/singlechip/stm-wwdg-2.png">
+
+<p>控制寄存器（WWDG_CR）</p>
+
+<img src="../../src/img/singlechip/stm-wwdg-3.png">
+<pre>T[6：0]用来存储看门狗的计数器值，随时更新的，每个窗口看门狗计数周期（4096×2^ WDGTB）减 1。当该计数器的值从 0X40 变为 0X3F 的时候，将产生看门狗复位。
+WDGA 位则是看门狗的激活位，该位由软件置 1，以启动看门狗，并且一定要注意的是该位一旦设置，就只能在硬件复位后才能清零了
+
+配置寄存器（WWDG_CFR）</pre>
+
+<img src="../../src/img/singlechip/stm-wwdg-4.png">
+
+<pre>EWI 是提前唤醒中断，也就是在快要产生复位的前一段时间（T[6:0]=0X40）来提醒我们，需要进行喂狗了，否则将复位！
+因此，我们一般用该位来设置中断，当窗口看门狗的计数器值减到 0X40 的时候，如果该位设置，并开启了中断，则会产生中断，我们可以在中断里面向 WWDG_CR 重新写入计数器的值，来达到喂狗的目的。注意这里在进入中断后，必须在不大于1个窗口看门狗计数周期的时间（在PCLK1频率为36M且WDGTB为0的条件下，该时间为 113us）内重新写 WWDG_CR，否则，看门狗将产生复位！
+最后我们要介绍的是状态寄存器（WWDG_SR），该寄存器用来记录当前是否有提前唤醒的标志。该寄存器仅有位 0 有效，其他都是保留位。当计数器值达到 40h 时，此位由硬件置 1。它必须通过软件写 0 来清除。对此位写 1 无效。即使中断未被使能，在计数器的值达到 0X40的时候，此位也会被置 1
+
+步骤如下：
+1） 使能 WWDG 时钟
+WWDG 不同于 IWDG，IWDG 有自己独立的 32Khz 时钟，不存在使能问题。而 WWDG使用的是 PCLK1 的时钟，需要先使能时钟。
+2） 设置 WWDG_CFR 和 WWDG_CR 两个寄存器
+在时钟使能完后，我们设置 WWDG 的 CFR 和 CR 两个寄存器，对 WWDG 进行配置。包括使能窗口看门狗、开启中断、设置计数器的初始值、设置窗口值并设置分频数 WDGTB 等。
+3） 开启 WWDG 中断并分组
+在设置完了 WWDG 后，需要配置该中断的分组及使能。这点通过我们之前所编写的MY_NVIC_Init 函数实现就可以了。
+4） 编写中断服务函数
+在最后，还是要编写窗口看门狗的中断服务函数，通过该函数来喂狗，喂狗要快，否则当窗口看门狗计数器值减到 0X3F 的时候，就会引起软复位了。在中断服务函数里面也要将状态寄存器的 EWIF 位清空。
+
+这一章的实验，我们将通过 DS0 来指示 STM32F1 是否被复位了，如果被复位了就会点亮 300ms。
+DS1 用来指示中断喂狗，每次中断喂狗翻转一次。
+
+首先打开上次的工程，然后在 wdg.c 加入如下代码（之前代码保留）：
+</pre>
+
+<img src="../../src/img/singlechip/stm-wwdg-5.png">
+<img src="../../src/img/singlechip/stm-wwdg-6.png">
+
+<pre>void WWDG_Init(u8 tr，u8 wr，u8 fprer)用来设置 WWDG 的初始化值。包括看门狗计数器的值和看门狗比较值等。注意到这里有个全局变量 WWDG_CNT，该变量用来保存最初设置 WWDG_CR 计数器的值。在后续的中断服务函数里面，就又把该数值放回到WWDG_CR 上。
+WWDG_Set_Counter 函数比较简单，就是用来重设窗口看门狗的计数器值的。该函数很简单，我们就不多说了。
+最后在中断服务函数里面，先重设窗口看门狗的计数器值，然后清除提前唤醒中断标志。
+最后对 LED1（DS1）取反，来监测中断服务函数的执行状况。我们再把这几个函数名加入到头文件里面去，以方便其他文件调用。
+
+main.c
+</pre>
+
+<img src="../../src/img/singlechip/stm-wwdg-7.png">
+<p>代码下载到开发板后，可以看到 DS0 亮一下之后熄灭，紧接着 DS1 开始不停的闪烁。每秒钟闪烁 8 次左右
+</p>
+</body>
+</html>

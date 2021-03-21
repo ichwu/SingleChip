@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>输入捕捉</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">输入捕捉</div>
+
+<pre>  这里使用TIM5的CH1   即PA0来做输入捕获 </pre>
+
+<img src="../../src/img/singlechip/stm-input-catch.png">
+
+<pre>测量方法如下：首先设置定时器通道 x 为上升沿捕获，这样，t1 时刻，就会捕获到当前的 CNT 值，然后立即清零 CNT，并设置通道 x为下降沿捕获，这样到 t2 时刻，又会发生捕获事件，得到此时的 CNT 值，记为 CCRx2。
+这样，根据定时器的计数频率，我们就可以算出 t1~t2 的时间，从而得到高电平脉宽
+CNT计数的次数等于：N*ARR+CCRx2，
+有了这个计数次数，再乘以 CNT 的计数周期，即可得到 t2-t1 的时间长度
+
+相关的寄存器有： TIMx_ARR
+				  TIMx_PSC
+				  TIMx_CCMR1
+				  TIMx_CCER
+				  TIMx_DIER
+				
+配置步骤：1）通过APB1ENR开启TIM5时钟 配置PA0为下拉输入
+		    2）设置TIM5的ARR 和 PSC的值
+		    3）配置TIM5的CCMR1  设置CH1为输入模式 且IC1映射到TI1(通道1)上
+		    4）配置TIM5的CCER 开启输入捕获 设置上升沿捕获
+		    5）配置TIM5的DIER  使能捕获和更新中断 并编写中断函数
+		    6）配置TIM5_CR1的最低位为1 开启计数器
+		    7）配置串口接收数据
+
+</pre>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>PWM</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">PWM</div>
+
+<pre>PWM-Pulse Width Modulation  脉冲宽度调制</pre>
+<img src="../../src/img/singlechip/stm-pwm.png">
+<pre>当 CNT 值小于 CCRx 的时候，IO 输出低电平(0)，当 CNT 值大于等于 CCRx 的时候，
+IO 输出高电平(1)，当 CNT 达到 ARR 值的时候，重新归零，然后重新向上计数，依次循环。
+改变 CCRx 的值，就可以改变 PWM 输出的占空比，
+改变 ARR 的值，就可以改变 PWM 输出的频率
+
+STM32 的定时器除了 TIM6 和 7。其他的定时器都可以用来产生 PWM 输出。
+高级定时器 TIM1 和 TIM8 可以同时产生多达 7 路的 PWM 输出。
+而通用定时器也能同时产生多达 4路的 PWM 输出
+
+下面使用TIM3 中的CH2 来产生PWM
+
+
+与PWM相关的寄存器有：TIMx_CCMR1/2  捕获/比较模式寄存器
+						TIMx_CCER   捕获/比较使能寄存器
+						TIMx_CCR1~4  捕获/比较寄存器
+					
+TIMx_CCMR1 控制CH1 CH2       TIMx_CCMR2 控制CH3 CH4 
+模式设置位为0CxM  共3bit   可配置7种模式  这里配置110/111  即配置输出电平极性相反的PWM
+TIMx_CCER CC2E位置1即可使能CH2
+TIMx_CCR1~4 对应 CH1~4  在输出模式下 该寄存器的值与CNT值相比较 根据结果产生动作
+
+
+TIM3_CH2默认是接到了PA7上 而DS0接在PB5上 可以通过重映射功能 把TIM3_CH2映射到PB5上
+STM32的重映射功能由AFIO_MAPR（复用重映射和调试IO配置寄存器）控制
+这里将TIM3_REMAP[1:0]设置为10即可
+
+
+实现步骤： 1）通过APB1ENR 开启TIM3时钟  配置PB5为复用输出
+		     2）配置AFIO_MAPR  设置TIM3_REMAP[1:0]
+		     3）设置TIM3的ARR和PSC
+		     4）配置TIM3_CCMR1的相关位来控制TIM3_CH2的模式
+		     5）设置TIM3_CCER1 TIM3_CR1 开启 CH2 及TIM3
+     6）修改TIM3_CCR2来控制占空比</pre>
+</body>
+</html>

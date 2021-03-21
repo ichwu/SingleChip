@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>sys</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">sys</div>
+<pre><code class="language-html line-numbers"sys文件夹定义了每个GPIO的宏 如PAout（5）= 1  if（PAin（5）== 1）
+每个外设均设有对应的时钟开关 该机制有助于降低功耗
+	PCLK1是APB1上的时钟 最大36MHz 如串口2 SPI2
+	PCLK2是APB2上的时钟 最大72MHz 如串口1 SPI1 GPIO
+
+RCC-Reset Clock Controller 复位时钟控制器
+NVIC-Nested Vectored Controller 嵌套向量中断控制器
+
+RCC是结构体 包含多个与时钟相关的寄存器
+SCB是结构体 包含多个与内核相关的寄存器
+NVIC是结构体 包含多个与中断相关的寄存器
+EXTI是结构体 包含多个与外部中断相关的寄存器
+
+usart 用于串口的初始化与接收 主要针对串口1
+	从电脑接收的数据保存在数组USART_RX_BUF[]中
+	USART_RX_STA存放数据个数 回车的标记（0x0D 0x0A）
+当接收到回车的第一个标记0x0D时 计数器不再增加 等待0x0A的到来
+若0x0A没有到来 则认为接收失败 重新开始新一轮接收
+若0x0A到来 则置位接收完成标记 等待被其他程序清0
+若没有接收到0x0D 当数据超出USART_REC_LEN时 则丢弃之前数据 重新接收
+
+当需要使能串口1接收时 需先到usart.h中设置EN_USART_RX  USART_REC_LEN
+初始化函数void uart_init（u32 plck2， u32 baud）
+每个串口的波特率在其相应的USART->BRR中设置
+
+
+NVIC 结构体
+	uint32_t   ISER[8]       //中断使能寄存器组
+	uint32_t   ICER[8]       //中断除能寄存器组
+	
+	uint32_t   ISPR[8]       //中断挂起控制寄存器组
+	uint32_t   ICPR[8]       //中断解挂控制寄存器组
+	
+	uint32_t   IABR[8]       //中断激活标志位寄存器组
+	uint8_t     IP[240]        //中断优先级控制寄存器组
+	uint32_t   STIP            //软件触发中断寄存器组   
+	
+	
+ISER[0]中bit0~32  对应中断0~31
+ISER[1]中bit0~32  对应中断32~63
+ISER[2]中bit0~3    对应中断64~67
+要使能那个中断  就置1相应位  随后还有配合中断分组，屏蔽，IO口映射等
+ICER与ISER相反
+
+ISPR 用来将相应位的中断挂起，从而执行同级或更高级的中断
+ICPR与ISPR相反
+
+IP-Interrupt Priority Registers  中断优先级寄存器
+IP[0]~IP[67] 分别对应 中断0~67   使用8bit中的高4位
+这高4位由SCB->AIRCR分为5个组  表示抢占优先级和响应优先级的位分配
+		比如设置第3组 则抢占优先级占3位 可表示0~7
+						响应优先级占1位 可表示0~1
+
+void MY_NVIC_Init（u8 NVIC_PreemptionPriority，    //抢占优先级
+					u8 NVIC_SubPriority，                 //响应优先级
+					u8 NVIC_Channel，                     //中断编号  0~67 或 EXTI0_IRQn 等
+					u8 NVIC_Group                            //中断分组：0~4
+					）
+					
+
+EXTI外部中断结构体
+	uint32_t IMR          //中断屏蔽寄存器     前19位有效 置1时则开启相应线上的中断 置0则关闭
+	uint32_t EMR         //事件屏蔽寄存器     同IMR  只针对事件
+	uint32_t RTSR        //上升沿触发选择寄存器  
+	uint32_t FTSR        //下降沿触发选择寄存器
+	uint32_t SWIER      //软件中断事件寄存器  置1时 若设置了IMR和EMR 则产生一次中断 否则挂起PR相应位 
+	uint32_t PR            //挂起寄存器    类似中断标志 
+	
+因为外部中断线只有16个 而IO口有16*7个    每条中断线对应7个IO口  
+
+EXTICR外部中断配置寄存器结构组
+	uint32_t EVCR
+	uint32_t MAPR
+	uint32_t EXTICR[4]
+EXTICR[0]~[3]   只用低16位 每4bit决定使用A B C D E F G那个IO口 
+
+void Ex_NVIC_Config（u8 GPIOx，u8 BITx，u8 TRIM）     //TRIM=01 下降沿    02  上升沿   03  任意
+</code></pre>
+
+</body>
+</html>

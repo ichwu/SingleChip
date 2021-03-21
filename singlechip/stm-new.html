@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>New Project</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">New Project</div>
+
+<pre>project Folder
+	USER	test.c    startup_stm32f10x_hd.s
+	SYSTEM	sys.h delay.h usart.h
+	HARDWARE	led.h  beep.h
+	OBJ	test.hex
+	
+
+
+新建一个 TEST 的文件夹，然后在 TEST 文件夹里面新建 USER 文件夹，Add New Project将工程名
+字设为 test，保存在这个 USER 文件夹里面
+Select STM32F103ZET6
+startup_stm32f10x_hd.s (已修改）拷贝到刚刚新建的 USER 文件夹里面。(已修改）
+新建OBJ 来保存Listings 和 Objects
+复制SYSTEM文件夹
+Target 目录树上点击右键→Manage Project Items
+         点新建新建 USER 和 SYSTEM 两个组。然后点击 Add Files 按钮，把 SYSTEM 文件夹三个子文件夹里
+         面的：sys.c、usart.c、delay.c 加入到 SYSTEM 组中。注意：此时 USER 组下还是没有任何文件
+新建一个 test.c 文件，并保存在 USER 文件夹下。然后双击 USER 组，会弹出
+加载文件的对话框，此时我们在 USER 目录下选择 test.c 文件
+至此，我们就可以开始编写我们自己的代码了。我们在 test.c 文件里面输入如下代码：
+#include "sys.h"
+#include "usart.h"
+#include "delay.h"
+int main(void)
+{
+u8 t=0;
+Stm32_Clock_Init(9); //系统时钟设置
+delay_init(72); //延时初始化
+uart_init(72,115200); //串口初始化为 115200
+while(1)
+{
+printf("t:%d\r\n",t);
+delay_ms(500);
+t++;
+}
+}
+点击 （Options for Target 按钮），弹出 Options forTarget’Target 1’对话框，选择 Output 选项卡→选中 Create Hex File
+（用于生成 Hex 文件，后面会用到）→点击 Select Folder for Objects→找到 OBJ 文件夹→点击 OK
+打开 Listing 选项卡→点击 SelectFolder for Listings→找到 OBJ 文件夹→点击 OK
+
+现在我们再次点击 （Options for Target 按钮），弹出 Options for Target’Target 1’对话框，选择 C/C++选项卡
+</pre>
+
+<img src="../../src/img/singlechip/stm-new-1.png">
+
+<pre>然后在 Include Paths 处（4 处），点击 5 处的按钮。在弹出的对话框中加入 SYSTEM 文件
+夹下的 3 个文件夹名字，把这几个路径都加进去（此操作即加入编译器的头文件包含路径，后
+面会经常用到）
+
+
+
+启动代码：启动代码是一段和硬件相关的汇编代码。
+这代码主要作用如下：
+1、堆栈（SP）的初始化；
+2、初始化程序计数器（PC）；
+3、设置向量表异常事件的入口地址；
+4、调用 main 函数。
+ST 公司提供了 3 个启动文件给我们，分别用于不同容量的 STM32 芯片，这三个文件是：
+startup_stm32f10x_ld.s        FLASH≤32K
+startup_stm32f10x_md.s     64K≤FLASH≤128K
+startup_stm32f10x_hd.s      256K≤FLASH        
+ STM32F103ZET6，FLASH 容量为 512KB
+这三个启动文件在开发板光盘→4，程序源码→STM32 启动文件 文件夹里面
+ 这里我们把startup_stm32f10x_hd.s 拷贝到刚刚新建的 USER 文件夹里面。
+不过这个启动文件，我们做了一点点修改，具体是 Reset_Handler 函数，该函数修改后代码如下：
+Reset_Handler PROC
+EXPORT Reset_Handler [WEAK]
+IMPORT __main
+;寄存器版本代码，因为没有用到 SystemInit 函数，所以注释掉
+;库函数版本代码，建议加上这里（外部必须实现 SystemInit 函数），以
+;初始化 stm32 时钟等。
+;IMPORT SystemInit
+;LDR R0, =SystemInit
+;BLX R0
+LDR R0, =__main
+BX R0
+ENDP
+这段代码，我们屏蔽了复位中断服务函数（Reset_Handler）对函数 SystemInit 的调用，
+如果是库函数版本，可以取消这个函数的注释，并在外部实现 SystemInit 函数。
+我们找到 Target1→Source Group1→双击→设置打开文件类型为 Asm Source
+file→选择 startup_stm32f10x_hd.s→点击 Add
+
+在 USER 文件夹下，startup_stm32f10x_hd.s（启动文件）和 test.uvprojx（MDK5 工程文件）
+是我们必须用到的 2 个文件，然后 Listings 和 Objects 文件夹是 MDK5 自动生成的，如果打开
+Listings 和 Objects 文件夹，就可以看到里面多了一些文件，这就是 MDK 编译过程产生的中间
+文件，如果工程量大，产生的文件更多（多的可达 100 MB 以上！！）。
+MDK5.14 已经默认将这些文件生成在了 Listings 和 Objects 文件夹里面，但是 MDK5.11A
+及之前版本是不会自动生成这两个文件夹的，所有中间文件都是生成在工程所在目录下，也就
+是 USER 文件夹下，这样会显得比较混乱。
+这里，我们不用 MDK5 自己生成的这两个文件夹来存放中间文件，而是在 TEST 目录下新
+建一个新的 OBJ 文件夹来存放这些中间文件（当然要先关闭 MDK 软件）
+
+由于上面我们还没有任何代码在工程里面，这里我们把系统代码 COPY 过来（即 SYSTEM
+文件夹，该文件夹由 ALIENTEK 提供，可以在光盘任何一个实例的工程目录下找到，不过不要
+拷贝错了！ 不要把库函数代码的系统文件夹拷贝到寄存器代码里面用，反之亦然！这些代码在
+任何 STM32F10x 的芯片上都是通用的，可以用于快速构建自己的工程，后面会有详细介绍）。
+</pre>
+
+<img src="../../src/img/singlechip/stm-new-2.png">
+
+<pre>然后我们在 USER 文件夹下面找到 test.uvprojx，打开它，然后在 Target 目录树上点击右键
+→Manage Project Items，弹出如图 3.2.12 所示对话框：</pre>
+
+<img src="../../src/img/singlechip/stm-new-3.png">
+
+<pre>在上面对话框的中间栏，点新建（用红圈标出）按钮（也可以通过双击下面的空白处实现），
+新建 USER 和 SYSTEM 两个组。然后点击 Add Files 按钮，把 SYSTEM 文件夹三个子文件夹里
+面的：sys.c、usart.c、delay.c 加入到 SYSTEM 组中。注意：此时 USER 组下还是没有任何文件，
+得到如图 3.2.13 所示的界面：</pre>
+
+<img src="../../src/img/singlechip/stm-new-4.png">
+
+<pre>点击 OK，退出该界面返回 IDE
+
+接着，我们新建一个 test.c 文件，并保存在 USER 文件夹下。然后双击 USER 组，会弹出
+加载文件的对话框，此时我们在 USER 目录下选择 test.c 文件，加入到 USER 组下。
+
+
+至此，我们就可以开始编写我们自己的代码了。我们在 test.c 文件里面输入如下代码：
+#include "sys.h"
+#include "usart.h"
+#include "delay.h"
+int main(void)
+{
+u8 t=0;
+Stm32_Clock_Init(9); //系统时钟设置
+delay_init(72); //延时初始化
+uart_init(72,115200); //串口初始化为 115200
+while(1)
+{
+printf("t:%d\r\n",t);
+delay_ms(500);
+t++;
+}
+}
+如果我们此时编译的话，生成的中间文件，还是会存放在 Listings 和 Objects 文件夹下，所
+以，我们先设置输出路径，再编译。点击 （Options for Target 按钮），弹出 Options for
+Target’Target 1’对话框，选择 Output 选项卡→选中 Create Hex File（用于生成 Hex 文件，后
+面会用到）→点击 Select Folder for Objects→找到 OBJ 文件夹→点击 OK，如图 3.2.16 所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-new-5.png">
+
+<pre>接着，再设置 Listings 文件路径，在图 3.2.16 的基础上，打开 Listing 选项卡→点击 Select
+Folder for Listings→找到 OBJ 文件夹→点击 OK，如图 3.2.17 所示：</pre>
+
+
+<img src="../../src/img/singlechip/stm-new-6.png">
+
+<br>最后点击 OK，回到 IDE 主界面。 
+
+<img src="../../src/img/singlechip/stm-new-7.png">
+
+<pre>这个界面，同我们刚输入完代码的时候一样，在第一行，会出现一个红色的“X”，把光标
+放上面，会看到提示信息：fatal error：‘sys.h’ file not found，意思是找不到 sys.h 这个源文件。
+这是 MDK4.7 以上才支持的动态语法检查功能，不需要编译，就可以实时检查出语法错误，方
+便编写代码，非常实用的一个功能，后续会详细介绍。当然，我们也可以编译一下，MDK 会
+报错，然后双击第一个错误即可定位到出错的地方，如图 3.2.19 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-new-8.png">
+
+<pre>双击红圈内的内容，你会发现在 test.c 的第 1 行出现了一个浅绿色的三角箭头，说明错误
+是这个地方产生的（这个功能很实用的哦！熟悉 C++的人就知道 C++也有这个功能，快速定位
+错误、警告产生的地方。）。
+错误提示，已经很清楚的告诉我们错误的原因了：就是 sys.h 的 include 路径没有加进去，
+MDK 找不到 sys.h，从而导致了这个错误。现在我们再次点击 （Options for Target 按钮），弹
+出 Options for Target’Target 1’对话框，选择 C/C++选项卡，如图 3.2.20 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-new-9.png">
+
+<pre>这里特别提醒大家：图中 1 处，我们必须根据所用 STM32F1 型号的容量，来输入相关宏
+定义，对于 STM32F103 系列芯片，设置原则如下：
+16KB≤FLASH≤32KB 选择：STM32F10X_LD
+64KB≤FLASH≤128KB 选择：STM32F10X_MD
+256KB≤FLASH≤512KB 选择：STM32F10X_HD
+因为战舰板使用的是 STM32F103ZET6，FLASH 容量为 512KB，所以，这个位置我们 设置
+为：STM32F10X_HD。
+图中 2 处是编译器优化选项，有-O0~-O3 四种选择（default 则是-O2），值越大，优化效果
+越强，但是仿真调试效果越差。这里我们选择-O0 优化，以得到最好的调试效果，方便开发代
+码，在代码调试结束后，大家可以选择-O2 之类的优化，得到更好的性能和更少的代码占用量。
+图中 3 处，One ELF Section per Function 主要是用来对冗余函数的优化。通过这个选项，
+可以在最后生成的二进制文件中将冗余函数排除掉，以便最大程度地优化最后生成的二进制代
+码，所以，我们一般勾选上这个，这样可以减少整个程序的代码量。
+然后在 Include Paths 处（4 处），点击 5 处的按钮。在弹出的对话框中加入 SYSTEM 文件
+夹下的 3 个文件夹名字，把这几个路径都加进去（此操作即加入编译器的头文件包含路径，后
+面会经常用到）。如图 3.2.21 所示：</pre>
+
+
+<img src="../../src/img/singlechip/stm-new-10.png">
+
+<pre>点击 OK 确认，回到 IDE，此时再点击 按钮，再编译一次，发现没错误了，
+
+3.3.1 文本美化
+文本美化，主要是设置一些关键字、注释、数字等的颜色和字体。
+细心的读者可能会发现，上面的代码里面有一个 u8，还是黑色的，这是一个用户自定义的
+关键字，为什么不显示蓝色（假定刚刚已经设置了用户自定义关键字颜色为蓝色）呢？这就又
+要回到我们刚刚的配置对话框了，单这次我们要选择 User Keywords 选项卡，同样选择：C/C++
+Editor Files，在右边的 User Keywords 对话框下面输入你自己定义的关键字
+
+语法检测& 代码提示
+MDK4.70 以上的版本，新增了代码提示与动态语法检测功能，使得 MDK 的编辑器越来越
+好用了，这里我们简单说一下如何设置，同样，点击 ，打开配置对话框，选择 Text Completion
+选项卡，如图 3.3.2.1 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-new-11.png">
+
+<pre>Strut/Class Members，用于开启结构体/类成员提示功能。
+Function Parameters，用于开启函数参数提示功能。
+Symbols after xx characters，用于开启代码提示功能，即在输入多少个字符以后，提示匹配
+的内容（比如函数名字、结构体名字、变量名字等），这里默认设置 3 个字符以后，就开始提示。
+Dynamic Syntax Checking，则用于开启动态语法检测，比如编写的代码存在语法错误的时
+候，会在对应行前面出现 图标，如出现警告，则会出现 图标，将鼠标光标放图标上面，则
+会提示产生的错误/警告的原因
+
+TAB 键的妙用
+MDK 的 TAB 键和一般编译器的 TAB 键有不同的地方，和 C++的 TAB 键差不多。
+MDK 的 TAB 键支持块操作。也就是可以让一片代码整体右移固定的几个位，
+             SHIFT+TAB 键整体左移固定的几个位。
+
+2 ） 快速定位函数/ 变量被定义的地方
+只要你把光标放到这个函数/变量（xxx）的上面（xxx 为你想要查看的函数或变量的名字），
+然后右键，我们找到 Go to Definition Of‘STM32_Clock_Init’
+然后单击左键就可以快速跳到 STM32_Clock_Init 函数的定义处
+注意要先在 Options for Target 的 Output选项卡里面勾选 Browse Information 选项，再编译，再定位，否则无法定位！）。
+
+我们利用 Go to Definition 看完函数/变量的定义后，又想返回之前的代码继续看，
+此时我们可以通过 IDE 上的 按钮（Back to previous position）快速的返回之前的位置
+
+快速注释与快速消注释
+快速打开头文件。在将光标放到要打开的引用头文件上，然后右键选择 OpenDocument“XXX”
+在 MDK 里面查找替换的快捷键是“CTRL+H”
+跨文件查找功能，先双击你要找的函数/变量名（这里我们还是以系统时钟
+初始化函数：Stm32_Clock_Init 为例），然后再点击 IDE 上面的 文件夹图标
+</pre>
+
+<img src="../../src/img/singlechip/stm-new-12.png">
+
+<br>点击 Find All，MDK 就会帮你找出所有含有 Stm32_Clock_Init 字段的文件并列出其所在位置
+
+
+
+</body>
+</html>

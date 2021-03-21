@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>TFT</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">TFT</div>
+
+<pre>TFT-LCD 即薄膜晶体管液晶显示器。其英文全称为：Thin Film Transistor-Liquid CrystalDisplay。TFT-LCD 与无源 TN-LCD、STN-LCD 的简单矩阵不同，它在液晶显示屏的每一个象
+素上都设置有一个薄膜晶体管（TFT），可有效地克服非选通时的串扰，使显示液晶屏的静态特性与扫描线数无关，因此大大提高了图像质量。TFT-LCD 也被叫做真彩液晶显示器。
+</pre>
+
+<img src="../../src/img/singlechip/stm-tft-1.png">
+<pre>该模块的 80 并口有如下一些信号线：
+CS：TFTLCD 片选信号。
+WR：向 TFTLCD 写入数据。
+RD：从 TFTLCD 读取数据。
+D[15：0]：16 位双向数据线
+RST：硬复位 TFTLCD。
+RS：命令/数据标志（0，读写命令；1，读写数据）。
+80 并口在上一节我们已经有详细的介绍了，这里我们就不再介绍，需要说明的是，TFTLCD模块的 RST 信号线是直接接到 STM32F1 的复位脚上，并不由软件控制，这样可以省下来一个
+IO 口。另外我们还需要一个背光控制线来控制 TFTLCD 的背光。所以，我们总共需要的 IO 口数目为 21 个。这里还需要注意，我们标注的 DB1~DB8，DB10~DB17，是相对于 LCD 控制 IC
+标注的，实际上大家可以把他们就等同于 D0~D15，这样理解起来就比较简单一点。ALIENTEK 提供 2.8/3.5/4.3/7 寸等不同尺寸的 TFTLCD 模块，其驱动芯片有很多种类型，
+比如有：ILI9341/ILI9325/RM68042/RM68021/ILI9320/ILI9328/LGDP4531/LGDP4535/SPFD5408/SSD1289/1505/B505/C505/NT35310/NT35510/SSD1963 等(具体的型号，大家可以通过下载本章实验代码，通过串口或者 LCD 显示查看)，这里我们仅以 ILI9341 控制器为例进行介绍，其他的控制基本都类似，我们就不详细阐述了。
+ILI9341 液晶控制器自带显存，其显存总大小为 172800（240*320*18/8），即 18 位模式（26万色）下的显存量。在 16 位模式下，ILI9341 采用 RGB565 格式存储颜色数据，此时 ILI9341
+的 18 位数据线与 MCU 的 16 位数据线以及 LCD GRAM 的对应关系如图 18.1.1.4 所示
+
+</pre>
+<img src="../../src/img/singlechip/stm-tft-2.png">
+<pre>从图中可以看出，ILI9341 在 16 位模式下面，数据线有用的是：D17~D13 和 D11~D1，D0和 D12 没有用到，实际上在我们 LCD 模块里面，ILI9341 的 D0 和 D12 压根就没有引出来，这
+样，ILI9341 的 D17~D13 和 D11~D1 对应 MCU 的 D15~D0。这样 MCU 的 16 位数据，最低 5 位代表蓝色，中间 6 位为绿色，最高 5 位为红色。数值越大，表示该颜色越深。另外，特别注意 ILI9341 所有的指令都是 8 位的（高 8 位无效），且参数除了读写 GRAM 的时候是 16 位，其他操作参数，都是 8 位的，这个和 ILI9320 等驱动器不一样，必须加以注意。
+接下来，我们介绍一下 ILI9341 的几个重要命令，因为 ILI9341 的命令很多，我们这里就不全部介绍了，有兴趣的大家可以找到 ILI9341 的 datasheet 看看。里面对这些命令有详细的介
+绍。我们将介绍：0XD3，0X36，0X2A，0X2B，0X2C，0X2E 等 6 条指令。
+首先来看指令：0XD3，这个是读 ID4 指令，用于读取 LCD 控制器的 ID，该指令如表 18.1.1.1所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-tft-3.png">
+<pre>从上表可以看出，0XD3 指令后面跟了 4 个参数，最后 2 个参数，读出来是 0X93 和 0X41，刚好是我们控制器 ILI9341 的数字部分，从而，通过该指令，即可判别所用的 LCD 驱动器是什
+么型号，这样，我们的代码，就可以根据控制器的型号去执行对应驱动 IC 的初始化代码，从而兼容不同驱动 IC 的屏，使得一个代码支持多款 LCD。
+接下来看指令：0X36，这是存储访问控制指令，可以控制 ILI9341 存储器的读写方向，简单的说，就是在连续写 GRAM 的时候，可以控制 GRAM 指针的增长方向，从而控制显示方式
+（读 GRAM 也是一样）。该指令如表 18.1.1.2 所示：</pre>
+<img src="../../src/img/singlechip/stm-tft-4.png">
+<pre>从上表可以看出，0X36 指令后面，紧跟一个参数，这里我们主要关注：MY、MX、MV这三个位，通过这三个位的设置，我们可以控制整个 ILI9341 的全部扫描方向，如表 18.1.1.3所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-tft-5.png">
+<pre>这样，我们在利用 ILI9341 显示内容的时候，就有很大灵活性了，比如显示 BMP 图片，BMP 解码数据，就是从图片的左下角开始，慢慢显示到右上角，如果设置 LCD 扫描方向为从左到右，从下到上，那么我们只需要设置一次坐标，然后就不停的往 LCD 填充颜色数据即可，这样可以大大提高显示速度。
+接下来看指令：0X2A，这是列地址设置指令，在从左到右，从上到下的扫描方式（默认）
+下面，该指令用于设置横坐标（x 坐标），该指令如表 18.1.1.4 所示：</pre>
+<img src="../../src/img/singlechip/stm-tft-6.png">
+<pre>在默认扫描方式时，该指令用于设置 y 坐标，该指令带有 4 个参数，实际上是 2 个坐标值：SP 和 EP，即页地址的起始值和结束值，SP 必须小于等于 EP，且 0≤SP/EP≤319。一般在设置y 坐标的时候，我们只需要带 2 个参数即可，也就是设置 SP 即可，因为如果 EP 没有变化，我们只需要设置一次即可（在初始化 ILI9341 的时候设置），从而提高速度。
+接下来看指令：0X2C，该指令是写 GRAM 指令，在发送该指令之后，我们便可以往 LCD
+的 GRAM 里面写入颜色数据了，该指令支持连续写，指令描述如表 18.1.1.6 所示：</pre>
+<img src="../../src/img/singlechip/stm-tft-7.png">
+<pre>从上表可知，在收到指令 0X2C 之后，数据有效位宽变为 16 位，我们可以连续写入 LCDGRAM 值，而 GRAM 的地址将根据 MY/MX/MV 设置的扫描方向进行自增。例如：假设设置的是从左到右，从上到下的扫描方式，那么设置好起始坐标（通过 SC，SP 设置）后，每写入一个颜色值，GRAM 地址将会自动自增 1（SC++），如果碰到 EC，则回到 SC，同时 SP++，一直到坐标：EC，EP 结束，其间无需再次设置的坐标，从而大大提高写入速度。
+最后，来看看指令：0X2E，该指令是读 GRAM 指令，用于读取 ILI9341 的显存（GRAM），
+该指令在 ILI9341 的数据手册上面的描述是有误的，真实的输出情况如表 18.1.1.7 所示：</pre>
+<img src="../../src/img/singlechip/stm-tft-8.png">
+<pre>该指令用于读取 GRAM，如表 18.1.1.7 所示，ILI9341 在收到该指令后，第一次输出的是dummy 数据，也就是无效的数据，第二次开始，读取到的才是有效的 GRAM 数据（从坐标：SC，SP 开始），输出规律为：每个颜色分量占 8 个位，一次输出 2 个颜色分量。比如：第一次输出是 R1G1，随后的规律为：B1R2→G2B2→R3G3→B3R4→G4B4→R5G5... 以此类推。如果我们只需要读取一个点的颜色值，那么只需要接收到参数 3 即可，如果要连续读取（利用 GRAM地址自增，方法同上），那么就按照上述规律去接收颜色数据。
+
+一般 TFTLCD 模块的使用流程如图 18.1.1.5：</pre>
+<img src="../../src/img/singlechip/stm-tft-9.png">
+<pre>任何 LCD，使用流程都可以简单的用以上流程图表示。其中硬复位和初始化序列，只需要执行一次即可。而画点流程就是：设置坐标→写 GRAM 指令→写入颜色数据，然后在 LCD 上面，我们就可以看到对应的点显示我们写入的颜色了。读点流程为：设置坐标→读 GRAM 指令→读取颜色数据，这样就可以获取到对应点的颜色数据了。
+以上只是最简单的操作，也是最常用的操作，有了这些操作，一般就可以正常使用 TFTLCD了。接下来我们将该模块（2.8 寸屏模块）用来来显示字符和数字，通过以上介绍，我们可以得出 TFTLCD 显示需要的相关设置步骤如下：
+1）设置 STM32F1 与 与 TFTLCD 模块相连接的 IO 。
+这一步，先将我们与 TFTLCD 模块相连的 IO 口进行初始化，以便驱动 LCD。这里我们用到的是 FSMC，FSMC 将在 18.1.2 节向大家详细介绍。
+2）初始化 TFTLCD 模块。
+即图 18.1.1.5 的初始化序列，这里我们没有硬复位 LCD，因为战舰 STM32F103 的 LCD 接口，将 TFTLCD 的 RST 同 STM32F1 的 RESET 连接在一起了，只要按下开发板的 RESET 键，就会对 LCD 进行硬复位。初始化序列，就是向 LCD 控制器写入一系列的设置值（比如伽马校准），这些初始化序列一般 LCD 供应商会提供给客户，我们直接使用这些序列即可，不需要深入研究。在初始化之后，LCD 才可以正常使用。
+3）通过函数将字符和数字显示到 TFTLCD 模块上。
+这一步则通过图 18.1.1.5 左侧的流程，即：设置坐标→写 GRAM 指令→写 GRAM 来实现，但是这个步骤，只是一个点的处理，我们要显示字符/数字，就必须要多次使用这个步骤，从而达到显示字符/数字的目的，所以需要设计一个函数来实现数字/字符的显示，之后调用该函数，就可以实现数字/字符的显示了。
+
+FSMC，即灵活的静态存储控制器，能够与同步或异步存储器和 16 位 PC 存储器卡连接，STM32F1 的 FSMC 接口支持包括 SRAM、NAND FLASH、NOR FLASH 和 PSRAM 等存储器。
+FSMC 的框图如图 18.1.2.1 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-tft-10.png">
+<pre>从上图我们可以看出，STM32 的 FSMC 将外部设备分为 3 类：NOR/PSRAM 设备、NAND设备、PC 卡设备。他们共用地址数据总线等信号，他们具有不同的 CS 以区分不同的设备，比如本章我们用到的 TFTLCD 就是用的 FSMC_NE4 做片选，其实就是将 TFTLCD 当成 SRAM 来控制。
+这里我们介绍下为什么可以把 TFTLCD 当成 SRAM 设备用：首先我们了解下外部 SRAM的连接，外部 SRAM 的控制一般有：地址线（如 A0~A18）、数据线（如 D0~D15）、写信号（WE）、读信号（OE）、片选信号（CS），如果 SRAM 支持字节控制，那么还有 UB/LB 信号。而 TFTLCD的信号我们在 18.1.1 节有介绍，包括：RS、D0~D15、WR、RD、CS、RST 和 BL 等，其中真正在操作 LCD 的时候需要用到的就只有：RS、D0~D15、WR、RD 和 CS。其操作时序和 SRAM的控制完全类似，唯一不同就是 TFTLCD 有 RS 信号，但是没有地址信号。TFTLCD 通过 RS 信号来决定传送的数据是数据还是命令，本质上可以理解为一个地址信号，比如我们把 RS 接在 A0 上面，那么当 FSMC 控制器写地址 0 的时候，会使得 A0 变为 0，对 TFTLCD 来说，就是写命令。而 FSMC 写地址 1 的时候，A0 将会变为 1，对 TFTLCD 来说，就是写数据了。这样，就把数据和命令区分开了，他们其实就是对应 SRAM 操作的两个连续地址。当然 RS 也可以接在其他地址线上，战舰 STM32 开发板是把 RS 连接在 A10 上面的。STM32F1 的 FSMC 支持 8/16/32 位数据宽度，我们这里用到的 LCD 是 16 位宽度的，所以在设置的时候，选择 16 位宽就 OK 了。我们再来看看 FSMC 的外部设备地址映像，STM32F1的 FSMC 将外部存储器划分为固定大小为 256M 字节的四个存储块，如图 18.1.2.2 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-tft-11.png">
+<pre>从上图可以看出，FSMC 总共管理 1GB 空间，拥有 4 个存储块（Bank），本章，我们用到的是块 1，所以在本章我们仅讨论块 1 的相关配置，其他块的配置，请参考《STM32 中文参考手册》第 19 章（324 页）的相关介绍。STM32F1 的 FSMC 存储块 1（Bank1）被分为 4 个区，每个区管理 64M 字节空间，每个区都有独立的寄存器对所连接的存储器进行配置。Bank1 的 256M 字节空间由 28 根地址线（HADDR[27:0]）寻址。这里 HADDR 是内部 AHB 地址总线，其中 HADDR[25:0]来自外部存储器地址FSMC_A[25:0]，而 HADDR[26:27]对 4 个区进行寻址。如表 18.1.2.1 所示：
+</pre>
+<img src="../../src/img/singlechip/stm-tft-12.png">
+
+<pre>
+表 18.1.2.1 中，我们要特别注意 HADDR[25:0]的对应关系：
+当 Bank1 接的是 16 位宽度存储器的时候：HADDR[25:1]→ FSMC_A[24:0]。
+当 Bank1 接的是 8 位宽度存储器的时候：HADDR[25:0]→ FSMC_A[25:0]。
+接 不论外部接 8 位/16 位宽设备，FSMC_A[0] 永远接在外部设备地址 A[0] 。 这里，TFTLCD使用的是 16 位数据宽度，所以 HADDR[0]并没有用到，只有 HADDR[25:1]是有效的，对应关系变为：HADDR[25:1]→ FSMC_A[24:0]，相当于右移了一位，具体来说，比如地址：0X7E，对应二进制是：01111110，此时 FSMC_A6 是 0 而不是 1，因为要右移一位，这里请特别注意。
+另外，HADDR[27:26]的设置，是不需要我们干预的，比如：当你选择使用 Bank1 的第三个区，即使用 FSMC_NE3 来连接外部设备的时候，即对应了 HADDR[27:26]=10，我们要做的就是配置对应第 3 区的寄存器组，来适应外部设备即可。STM32F1 的 FSMC 各 Bank 配置寄存器如表 18.1.2.2 所示：
+</pre>
+
+<img src="../../src/img/singlechip/stm-tft-13.png">
+<pre>对于 NOR FLASH 控制器，主要是通过 FSMC_BCRx、FSMC_BTRx 和 FSMC_BWTRx 寄存器设置（其中 x=1~4，对应 4 个区）。通过这 3 个寄存器，可以设置 FSMC 访问外部存储器的时序参数，拓宽了可选用的外部存储器的速度范围。FSMC 的 NOR FLASH 控制器支持同步和异步突发两种访问方式。选用同步突发访问方式时，FSMC 将 HCLK(系统时钟)分频后，发送给外部存储器作为同步时钟信号 FSMC_CLK。此时需要的设置的时间参数有 2 个：1，HCLK 与 FSMC_CLK 的分频系数(CLKDIV)，可以为 2～16 分频；2，同步突发访问中获得第 1 个数据所需要的等待延迟(DATLAT)。
+对于异步突发访问方式，FSMC 主要设置 3 个时间参数：地址建立时间(ADDSET)、数据建立时间(DATAST)和地址保持时间(ADDHLD)。FSMC 综合了 SRAM／ROM、PSRAM 和 NORFlash 产品的信号特点，定义了 4 种不同的异步时序模型。选用不同的时序模型时，需要设置不同的时序参数，如表 18.1.2.3 所列：</pre>
+
+<img src="../../src/img/singlechip/stm-tft-14.png">
+<pre>在实际扩展时，根据选用存储器的特征确定时序模型，从而确定各时间参数与存储器读／写周期参数指标之间的计算关系；利用该计算关系和存储芯片数据手册中给定的参数指标，可计算出 FSMC 所需要的各时间参数，从而对时间参数寄存器进行合理的配置。本章，我们使用异步模式 A（ModeA）方式来控制 TFTLCD，模式 A 的读操作时序如图18.1.2.3 所示：
+</pre>
+<img src="../../src/img/singlechip/stm-tft-15.png">
+<pre>模式 A 支持独立的读写时序控制，这个对我们驱动 TFTLCD 来说非常有用，因为 TFTLCD在读的时候，一般比较慢，而在写的时候可以比较快，如果读写用一样的时序，那么只能以读的时序为基准，从而导致写的速度变慢，或者在读数据的时候，重新配置 FSMC 的延时，在读操作完成的时候，再配置回写的时序，这样虽然也不会降低写的速度，但是频繁配置，比较麻烦。而如果有独立的读写时序控制，那么我们只要初始化的时候配置好，之后就不用再配置，既可以满足速度要求，又不需要频繁改配置。模式 A 的写操作时序如图 18.1.2.4 所示：
+</pre>
+<img src="../../src/img/singlechip/stm-tft-16.png">
+<pre>图 18.1.2.3 和图 18.1.2.4 中的 ADDSET 与 DATAST，是通过不同的寄存器设置的，接下来我们讲解一下 Bank1 的几个控制寄存器首先，我们介绍 SRAM/NOR 闪存片选控制寄存器：FSMC_BCRx（x=1~4），该寄存器各位描述如图 18.1.2.5 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-tft-17.png">
+<pre>该寄存器我们在本章用到的设置有：EXTMOD、WREN、MWID、MTYP 和 MBKEN 这几个设置，我们将逐个介绍。
+EXTMOD：扩展模式使能位，也就是是否允许读写不同的时序，很明显，我们本章需要读写不同的时序，故该位需要设置为 1。
+WREN：写使能位。我们需要向 TFTLCD 写数据，故该位必须设置为 1。
+MWID[1:0]：存储器数据总线宽度。00，表示 8 位数据模式；01 表示 16 位数据模式；10和 11 保留。我们的 TFTLCD 是 16 位数据线，所以设置 WMID[1:0]=01。
+MTYP[1:0]：存储器类型。00 表示 SRAM、ROM；01 表示 PSRAM；10 表示 NOR FLASH;11保留。前面提到，我们把 TFTLCD 当成 SRAM 用，所以需要设置 MTYP[1:0]=00。
+MBKEN：存储块使能位。这个容易理解，我们需要用到该存储块控制 TFTLCD，当然要使能这个存储块了。
+接下来，我们看看 SRAM/NOR 闪存片选时序寄存器：FSMC_BTRx（x=1~4），该寄存器各位描述如图 18.1.2.6 所示：</pre>
+<img src="../../src/img/singlechip/stm-tft-18.png">
+<pre>这个寄存器包含了每个存储器块的控制信息，可以用于SRAM、ROM和NOR闪存存储器。
+如果 FSMC_BCRx 寄存器中设置了 EXTMOD 位，则有两个时序寄存器分别对应读(本寄存器)和写操作(FSMC_BWTRx 寄存器)。因为我们要求读写分开时序控制，所以 EXTMOD 是使能了的，也就是本寄存器是读操作时序寄存器，控制读操作的相关时序。本章我们要用到的设置有：ACCMOD、DATAST 和 ADDSET 这三个设置。
+ACCMOD[1:0]：访问模式。00 表示访问模式 A；01 表示访问模式 B；10 表示访问模式 C；11 表示访问模式 D，本章我们用到模式 A，故设置为 00。
+DATAST[7:0]：数据保持时间。0 为保留设置，其他设置则代表保持时间为: DATAST 个HCLK 时钟周期，最大为 255 个 HCLK 周期。对 ILI9341 来说，其实就是 RD 低电平持续时间，一般为 355ns。而一个 HCLK 时钟周期为 13.8ns 左右（1/72Mhz），为了兼容其他屏，我们这里设置 DATAST 为 15，也就是 16 个 HCLK 周期，时间大约是 234ns （未计算数据存储的 2 个 HCLK时间，对 9341 来说超频了，但是实际上是可以正常使用的）。
+ADDSET[3:0]：地址建立时间。其建立时间为：ADDSET 个 HCLK 周期，最大为 15 个 HCLK周期。对 ILI9341 来说，这里相当于 RD 高电平持续时间，为 90ns，本来这里我们应该设置和DATAST 一样，但是由于 STM32F103 FSMC 的性能问题，就算设置 ADDSET 为 0，RD 的高电平持续时间也达到了 190ns 以上，所有，我们这里可以设置 ADDSET 为较小的值，本章我们设置 ADDSET 为 1，即 2 个 HCLK 周期，实际 RD 高电平大于 200ns。
+最后，我们再来看看 SRAM/NOR 闪写时序寄存器：FSMC_BWTRx（x=1~4），该寄存器各位描述如图 18.1.2.7 所示：</pre>
+<img src="../../src/img/singlechip/stm-tft-19.png">
+<pre>该寄存器在本章用作写操作时序控制寄存器，需要用到的设置同样是：ACCMOD、DATAST和 ADDSET 这三个设置。这三个设置的方法同 FSMC_BTRx 一模一样，只是这里对应的是写操作的时序，ACCMOD 设置同 FSMC_BTRx 一模一样，同样是选择模式 A，另外 DATAST 和ADDSET 则对应低电平和高电平持续时间，对 ILI9341 来说，这两个时间只需要 15ns 就够了，比读操作快得多。所以我们这里设置 DATAST 为 3，即 4 个 HCLK 周期，时间约为 55ns（因为9320 等控制器，这个时间要求比较长，要 50ns）。然后 ADDSET（也存在性能问题）设置为 0，即 1 个 HCLK 周期，实际 WR 高电平时间大于 100ns。
+在 MDK 的寄存器定义里面，并没有定义FSMC_BCRx、FSMC_BTRx、FSMC_BWTRx 等这个单独的寄存器，而是将他们进行了一些组合。
+FSMC_BCRx 和 FSMC_BTRx，组合成 BTCR[8]寄存器组，他们的对应关系如下：
+BTCR[0]对应 FSMC_BCR1，BTCR[1]对应 FSMC_BTR1
+BTCR[2]对应 FSMC_BCR2，BTCR[3]对应 FSMC_BTR2
+BTCR[4]对应 FSMC_BCR3，BTCR[5]对应 FSMC_BTR3
+BTCR[6]对应 FSMC_BCR4，BTCR[7]对应 FSMC_BTR4
+FSMC_BWTRx 则组合成 BWTR[7]，他们的对应关系如下：
+BWTR[0]对应 FSMC_BWTR1，BWTR[2]对应 FSMC_BWTR2，
+BWTR[4]对应 FSMC_BWTR3，BWTR[6]对应 FSMC_BWTR4，
+BWTR[1]、BWTR[3]和 BWTR[5]保留，没有用到。</pre>
+<img src="../../src/img/singlechip/stm-tft-20.png">
+<pre>LCD_BL(背光控制)对应 PB0;
+LCD_CS 对应 PG12 即 FSMC_NE4;
+LCD _RS 对应 PG0 即 FSMC_A10;
+LCD _WR 对应 PD5 即 FSMC_NWE;
+LCD _RD 对应 PD4 即 FSMC_NOE;
+LCD _D[15:0]则直接连接在 FSMC_D15~FSMC_D0;
+软件设计我们依旧在之前的工程上面增加，不过没用到 OLED，所以先去掉 oled.c（注意，此时 HARDWARE 组仅剩：led.c），然后在 HARDWARE 文件夹下新建一个 LCD 的文件夹。然后打开 USER 文件夹下的工程，新建一个 ILI93xx.c 的文件和 lcd.h 的头文件，保存在 LCD 文件夹下，并将 LCD 文件夹加入头文件包含路径。
+在 ILI93xx.c 里面要输入的代码比较多，我们这里就不贴出来了，只针对几个重要的函数进行讲解。完整版的代码见光盘→4，程序源码→标准例程-寄存器版本→实验 13 TFTLCD 显示实验的 ILI93xx.c 文件。
+本实验，我们用到 FSMC 驱动 LCD，通过前面的介绍，我们知道 TFTLCD 的 RS 接在 FSMC的 A10 上面，CS 接在 FSMC_NE4 上，并且是 16 位数据总线。即我们使用的是 FSMC 存储器1 的第 4 区，我们定义如下 LCD 操作结构体（在 lcd.h 里面定义）：</pre>
+<img src="../../src/img/singlechip/stm-tft-21.png">
+<pre>其中 LCD_BASE，必须根据我们外部电路的连接来确定，我们使用 Bank1.sector4 就是从地址 0X6C000000 开始，而 0X000007FE，则是 A10 的偏移量，这里很多朋友不理解这个偏移量的概念，简单说明下：以 A10 为例，7FE 转换成二进制就是：111 1111 1110，而 16 位数据时，地址右移一位对齐，那么实际对应到地址引脚的时候，就是：A10:A0=011 1111 1111，此时 A10是 0，但是如果 16 位地址再加 1 （注意：对应到 8 位地址是加 2，即 7FE+0X02），那么：A10:A0=1000000 0000，此时 A10 就是 1 了，即实现了对 RS 的 0 和 1 的控制。
+我们将这个地址强制转换为 LCD_TypeDef 结构体地址，那么可以得到 LCD->LCD_REG 的地址就是 0X6C00,07FE，对应 A10 的状态为 0(即 RS=0)，而 LCD-> LCD_RAM 的地址就是0X6C00,0800（结构体地址自增），对应 A10 的状态为 1（即 RS=1）。所以，有了这个定义，当我们要往 LCD 写命令/数据的时候，可以这样写：</pre>
+<img src="../../src/img/singlechip/stm-tft-22.png">
+<pre>而读的时候反过来操作就可以了，如下所示</pre>
+<img src="../../src/img/singlechip/stm-tft-23.png">
+<pre>这其中，CS、WR、RD 和 IO 口方向都是由 FSMC 控制，不需要我们手动设置了。接下来，我们先介绍一下 lcd.h 里面的另一个重要结构体:
+</pre>
+<img src="../../src/img/singlechip/stm-tft-24.png">
+<pre>该结构体用于保存一些 LCD 重要参数信息，比如 LCD 的长宽、LCD ID（驱动 IC 型号）、LCD 横竖屏状态等，这个结构体虽然占用了十几个字节的内存，但是却可以让我们的驱动函数支持不同尺寸的LCD，同时可以实现 LCD 横竖屏切换等重要功能，所以还是利大于弊的。有了以上了解，下面我们开始介绍 ILI93xx.c 里面的一些重要函数。先看 7 个简单，但是很重要的函数：
+</pre>
+<img src="../../src/img/singlechip/stm-tft-25.png">
+<img src="../../src/img/singlechip/stm-tft-26.png">
+<img src="../../src/img/singlechip/stm-tft-27.png">
+<pre>因为 FSMC 自动控制了 WR/RD/CS 等这些信号，所以这 7 个函数实现起来都非常简单，我们就不多说。这些函数实现功能见函数前面的备注，通过这几个简单函数的组合，我们就可以对 LCD 进行各种操作了。第八个要介绍的函数是坐标设置函数，该函数代码如下：</pre>
+<img src="../../src/img/singlechip/stm-tft-28.png">
+<img src="../../src/img/singlechip/stm-tft-29.png">
+<img src="../../src/img/singlechip/stm-tft-30.png">
+<pre>该函数非常重要，该函数实现了将 LCD 的当前操作点设置到指定坐标(x,y)，有了该函数，我们就可以在液晶上任意作图了。这里面的 lcddev.setxcmd、lcddev.setycmd、lcddev.width、lcddev.height 等指令/参数都是在 LCD_Display_Dir 函数里面初始化的，该函数根据 lcddev.id 的不同，执行不同的设置，另外，因为 9341/5310/6804/1963/5510 等的设置同其他屏有些不太一样，所以进行了区别对待。
+接下来我们介绍第九个函数：画点函数。该函数实现代码如下：</pre>
+<img src="../../src/img/singlechip/stm-tft-31.png">
+<pre>
+该函数实现比较简单，就是先设置坐标，然后往坐标写颜色。其中 POINT_COLOR 是我们定义的一个全局变量，用于存放画笔颜色，顺带介绍一下另外一个全局变量：BACK_COLOR，该变量代表 LCD 的背景色。LCD_DrawPoint 函数虽然简单，但是至关重要，其他几乎所有上层函数，都是通过调用这个函数实现的。
+有了画点，当然还需要有读点的函数，第十个介绍的函数就是读点函数，用于读取 LCD的 GRAM，这里说明一下，为什么 OLED 模块没做读 GRAM 的函数，而这里做了。因为 OLED模块是单色的，所需要全部 GRAM 也就 1K 个字节，而 TFTLCD 模块为彩色的，点数也比 OLED模块多很多，以 16 位色计算，一款 320×240 的液晶，需要 320×240×2 个字节来存储颜色值，也就是也需要 150K 字节，这对任何一款单片机来说，都不是一个小数目了。而且我们在图形叠加的时候，可以先读回原来的值，然后写入新的值，在完成叠加后，我们又恢复原来的值。这样在做一些简单菜单的时候，是很有用的。这里我们读取 TFTLCD 模块数据的函数为LCD_ReadPoint，该函数直接返回读到的 GRAM 值。该函数使用之前要先设置读取的 GRAM地址，通过 LCD_SetCursor 函数来实现。LCD_ReadPoint 的代码如下：
+</pre>
+<img src="../../src/img/singlechip/stm-tft-32.png">
+<img src="../../src/img/singlechip/stm-tft-33.png">
+<pre>在 LCD_ReadPoint 函数中，因为我们的代码不止支持一种 LCD 驱动器，所以，我们根据不同的 LCD 驱动器（(lcddev.id）型号，执行不同的操作，以实现对各个驱动器兼容，提高函数的通用性。
+第十一个要介绍的是字符显示函数 LCD_ShowChar，该函数同前面 OLED 模块的字符显示函数差不多，但是这里的字符显示函数多了 1 个功能，就是可以以叠加方式显示，或者以非叠加方式显示。叠加方式显示多用于在显示的图片上再显示字符。非叠加方式一般用于普通的显示。该函数实现代码如下：</pre>
+<img src="../../src/img/singlechip/stm-tft-34.png">
+<img src="../../src/img/singlechip/stm-tft-35.png">
+
+<pre>在 LCD_ShowChar 函数里面，我们采用快速画点函数 LCD_Fast_DrawPoint 来画点显示字符，该函数同 LCD_DrawPoint 一样，只是带了颜色参数，且减少了函数调用的时间，详见本例程源码。该代码中我们用到了三个字符集点阵数据数组 asc2_2412、asc2_1206 和 asc2_1608，这几个字符集的点阵数据的提取方式，同十七章介绍的提取方法是一模一样的。详细请参考第十七章。
+最后，我们再介绍一下 TFTLCD 模块的初始化函数 LCD_Init，该函数先初始化 STM32 与TFTLCD 连接的 IO 口，并配置 FSMC 控制器，然后读取 LCD 控制器的型号，根据控制 IC 的型号执行不同的初始化代码，其简化代码如下：</pre>
+<img src="../../src/img/singlechip/stm-tft-36.png">
+<img src="../../src/img/singlechip/stm-tft-37.png">
+<img src="../../src/img/singlechip/stm-tft-38.png">
+<img src="../../src/img/singlechip/stm-tft-39.png">
+<img src="../../src/img/singlechip/stm-tft-40.png">
+<img src="../../src/img/singlechip/stm-tft-41.png">
+
+<pre>
+该函数先对 FSMC 相关 IO 进行初始化，然后是 FSMC 的初始化，这个我们在前面都有介绍，最后根据读到的 LCD ID，对不同的驱动器执行不同的初始化代码，从上面的代码可以看出，这个初始化函数可以针对十多款不同的驱动 IC 执行初始化操作，这样大大提高了整个程序的通用性。大家在以后的学习中应该多使用这样的方式，以提高程序的通用性、兼容性。特别注意：本函数使用了 printf 来打印 LCD ID，所以，如果你在主函数里面没有初始化串口，那么将导致程序死在 printf 里面！！如果不想用 printf，那么请注释掉它。保存 ILI93xx.c，并将该代码加入到 HARDWARE 组下。在介绍完了 ILI93xx.c 的内容之后，然后我们在 lcd.h 里面输入如下内容：</pre>
+<img src="../../src/img/singlechip/stm-tft-42.png">
+<img src="../../src/img/singlechip/stm-tft-43.png">
+<img src="../../src/img/singlechip/stm-tft-44.png">
+<img src="../../src/img/singlechip/stm-tft-45.png">
+<pre>这段代码的两个重要结构体定义，我们都在前面有介绍，其他的相对就比较简单了。另外限于篇幅，我们省略了部分内容。此部分我们就不多说了。接下来，我们在 test.c 里面修改 main函数如下：
+</pre>
+<img src="../../src/img/singlechip/stm-tft-46.png">
+<img src="../../src/img/singlechip/stm-tft-47.png">
+<img src="../../src/img/singlechip/stm-tft-48.png">
+<pre>该部分代码将显示一些固定的字符，字体大小包括 24*12、16*8 和 12*6 等三种，同时显示LCD 驱动 IC 的型号，然后不停的切换背景颜色，每 1s 切换一次。而 LED0 也会不停的闪烁，指示程序已经在运行了。其中我们用到一个 sprintf 的函数，该函数用法同 printf，只是 sprintf把打印内容输出到指定的内存区间上，sprintf 的详细用法，请百度。另外 特别注意：uart_init 函数，不能去掉，因为在 LCD_Init 函数里面调用了 printf，所以一旦你去掉这个初始化，就会死机了!实际上，只要你的代码有用到 printf，就必须初始化串口，否则都会死机，即停在 usart.c 里面的 fputc 函数，出不来。
+在编译通过之后，我们开始下载验证代码。
+18.4 下载 验证
+将程序下载到战舰 STM32 后，可以看到 DS0 不停的闪烁，提示程序已经在运行了。同时可以看到 TFTLCD 模块的显示如图 18.4.1 所示
+</pre>
+<img src="../../src/img/singlechip/stm-tft-49.png">
+<pre>我们可以看到屏幕的背景是不停切换的，同时 DS0 不停的闪烁，证明我们的代码被正确的执行了，达到了我们预期的目的，实现了 TFTLCD 的驱动，以及字符的显示。另外，本例程除了不支持 CPLD 方案的 7 寸屏模块，其余所有的 ALIENTEK TFTLCD 模块都可以支持，直接插上去即可使用。</pre>
+
+</body>
+</html>

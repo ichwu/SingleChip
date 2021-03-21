@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>OLED</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">OLED</div>
+
+<pre>模块提供了总共 4 种接口包括：6800、8080 两种并行接口方式、4线 SPI 接口方式以及 IIC 接口方式不需要高压，直接接 3.3V 就可以工作了。该模块不和 5.0V 接口兼容
+以上 4 种模式通过模块的 BS1 和 BS2 设置</pre>
+
+<img src="../../src/img/singlechip/stm-oled-3.png">
+<img src="../../src/img/singlechip/stm-oled-4.png">
+<img src="../../src/img/singlechip/stm-oled-5.png">
+
+<pre>ALIENTEK OLED 模块默认设置是：BS1 和 BS2 接 VCC ，即使用 8080 并口方式
+如果你想要设置为其他模式，则需要在 OLED 的背面，用烙铁修改 BS1 和 BS2 的设置。
+</pre>
+
+<pre>在 16 条线中，我们只用了 15条，有一个是悬空的。15 条线中，电源和地线占了 2 条，还剩下 13 条信号线。
+这其中有一条是共同的，那就是复位线 RST（RES），RST 上的低电平，将导致OLED 复位，在每次初始化之前，都应该复位一下 OLED 模块。
+本章的实例代码将可以支持两种方式与 OLED 模块连接，一种是8080 的并口方式，另外一种是 4 线 SPI 方式。
+8080 并行接口的发明者是 INTEL，该总线也被广泛应用于各类液晶显示器，ALIENTEK OLED 模块也提供了这种接口，使得 MCU 可以快速的访问 OLED。
+CS：OLED 片选信号。
+WR：向 OLED 写入数据。
+RD：从 OLED 读取数据。
+D[7：0]：8 位双向数据线。
+RST(RES)：硬复位 OLED。
+DC：命令/数据标志（0，读写命令；1，读写数据）。
+
+模块的 8080 并口读/写的过程为：
+先根据要写入/读取的数据的类型，设置 DC 为高（数据）/低（命令），然后拉低片选，选中 SSD1306，接着我们根据是读数据，还是要写数据置 RD/WR为低，然后：在 RD 的上升沿， 使数据锁存到数据线（D[7：0]）上；在 WR 的上升沿，使数据写入到 SSD1306 里面；
+
+SSD1306 的 8080 并口写时序图如图 17.1.3 所示：        
+</pre>
+<img src="../../src/img/singlechip/stm-oled-6.png">
+<pre>SSD1306 的 8080 并口读时序图如图 17.1.4 所示</pre>
+<img src="../../src/img/singlechip/stm-oled-7.png">
+
+<pre>SSD1306 的 8080 接口方式下，控制脚的信号状态所对应的功能如表</pre>
+<img src="../../src/img/singlechip/stm-oled-8.png">
+
+<pre>在 8080 方式下读数据操作的时候，我们有时候（例如读显存的时候）需要一个假读命（Dummy Read）
+以使得微控制器的操作频率和显存的操作频率相匹配。
+这里的假读，其实就是第一个读到的字节丢弃不要，从第二个开始，才是我们真正要读的数据。
+</pre>
+
+<img src="../../src/img/singlechip/stm-oled-9.png">
+
+<pre>接下来介绍一下 4 线串行（SPI）方式
+CS：OLED 片选信号。
+RST(RES)：硬复位 OLED。
+DC：命令/数据标志（0，读写命令；1，读写数据）。
+SCLK：串行时钟线。在 4 线串行模式下，D0 信号线作为串行时钟线 SCLK。
+SDIN：串行数据线。在 4 线串行模式下，D1 信号线作为串行数据线 SDIN。
+模块的 D2 需要悬空，其他引脚可以接到 GND。在 4 线串行模式下，只能往模块写数据而不能读数据。
+在 4 线 SPI 模式下，每个数据长度均为 8 位，在 SCLK 的上升沿，数据从 SDIN 移入到SSD1306，并且是高位在前的。DC 线还是用作命令/数据的标志线。
+
+在 4 线 SPI 模式下，写操作的时序如图 17.1.6 所示：
+</pre>
+<img src="../../src/img/singlechip/stm-oled-10.png">
+<pre>SSD1306 的显存总共为 128*64bit 大小，SSD1306 将这些显存分为了 8 页，其对应关系如表 17.1.3 所示：</pre>
+<img src="../../src/img/singlechip/stm-oled-11.png">
+
+<pre>SSD1306 的每页包含了 128 个字节，总共 8 页，这样刚好是 128*64 的点阵大小。因为每次写入都是按字节写入的，这就存在一个问题，如果我们使用只写方式操作模块，
+那么，每次要写 8 个点，这样，我们在画点的时候，就必须把要设置的点所在的字节的每个位都搞清楚当前的状态（0/1？），否则写入的数据就会覆盖掉之前的状态，结果就是有些不需要显示的点，显示出来了，或者该显示的没有显示了。这个问题在能读的模式下，我们可以先读出来要写入的那个字节，得到当前状况，在修改了要改写的位之后再写进 GRAM，这样就不会影响到之前的状况了。但是这样需要能读 GRAM，对于 4 线 SPI 模式/IIC 模式，模块是不支持读的，而且读->改->写的方式速度也比较慢。
+所以我们采用的办法是在 STM32F1 的内部建立一个 OLED 的 GRAM（共 128*8 个字节），在每次修改的时候，只是修改 STM32F1 上的 GRAM（实际上就是 SRAM），在修改完了之后，一次性把 STM32F1 上的 GRAM 写入到 OLED 的 GRAM。当然这个方法也有坏处，就是对于那些 SRAM 很小的单片机（比如 51 系列）就比较麻烦了。
+SSD1306 的命令比较多，这里我们仅介绍几个比较常用的命令，这些命令如表 17.1.4 所示：</pre>
+<img src="../../src/img/singlechip/stm-oled-12.png">
+
+<pre>第一个命令为 0X81，用于设置对比度的，这个命令包含了两个字节，第一个 0X81 为命令，随后发送的一个字节为要设置的对比度的值。这个值设置得越大屏幕就越亮。
+第二个命令为 0XAE/0XAF。0XAE 为关闭显示命令；0XAF 为开启显示命令。
+第三个命令为 0X8D，该指令也包含 2 个字节，第一个为命令字，第二个为设置值，第二个字节的 BIT2 表示电荷泵的开关状态，该位为 1，则开启电荷泵，为 0 则关闭。在模 块初始化的时候，这个必须要开启，否则是看不到屏幕显示的。个字节的 BIT2 表示电荷泵的开关状态，该位为 1，则开启电荷泵，为 0 则关闭。
+                                在模块初始化的时候，这个必须要开启，否则是看不到屏幕显示的。
+第四个命令为 0XB0~B7，该命令用于设置页地址，其低三位的值对应着 GRAM 的页地址。
+第五个指令为 0X00~0X0F，该指令用于设置显示时的起始列地址低四位。
+第六个指令为 0X10~0X1F，该指令用于设置显示时的起始列地址高四位。
+
+最后，我们再来介绍一下 OLED 模块的初始化过程，SSD1306 的典型初始化框图如图 17.1.7</pre>
+
+<img src="../../src/img/singlechip/stm-oled-13.png">
+<pre>驱动 IC 的初始化代码，我们直接使用厂家推荐的设置就可以了，只要对细节部分进行一些修改，使其满足我们自己的要求即可，其他不需要变动。
+OLED 的介绍就到此为止，我们重点向大家介绍了 ALIENTEK OLED 模块的相关知识，接下来我们将使用这个模块来显示字符和数字。通过以上介绍，我们可以得出 OLED 显示需要的
+相关设置步骤如下：
+1 ）设置 STM32F1 与 与 OLED 模块相连接的 IO 。
+这一步，先将我们与 OLED 模块相连的 IO 口设置为输出，具体使用哪些 IO 口，这里需要根据连接电路以及 OLED 模块所设置的通讯模式来确定。这些将在硬件设计部分向大家介绍。
+2 ）初始化 OLED 模块。
+其实这里就是上面的初始化框图的内容，通过对 OLED 相关寄存器的初始化，来启动 OLED的显示。为后续显示字符和数字做准备。
+3 ）通过函数将字符和数字显示到 OLED 模块上。
+这里就是通过我们设计的程序，将要显示的字符送到 OLED 模块就可以了，这些函数将在软件设计部分向大家介绍。
+
+本实验用到的硬件资源有：
+1） 指示灯 DS0
+2） OLED 模块</pre>
+<img src="../../src/img/singlechip/stm-oled-14.png">
+<pre>OLED_CS 对应 PD6;
+OLED_RST 对应 PG15;
+OLED_RS 对应 PD3;
+OLED_WR 对应 PG14;
+OLED_RD 对应 PG13;
+OLED_D[7：0]对应 PC[7：0];
+
+oled.c 的代码，由于比较长，这里我们就不贴出来了，仅介绍几个比较重要的函数。首先是 OLED_Init 函数，该函数的结构比较简单，开始是对 IO 口的初始化，这里我们用了宏定义
+OLED_MODE 来决定要设置的 IO 口，其他就是一些初始化序列了，我们按照厂家提供的资料来做就可以。最后要说明一点的是，因为 OLED 是无背光的，在初始化之后，我们把显存都清
+空了，所以我们在屏幕上是看不到任何内容的，跟没通电一个样，不要以为这就是初始化失败，要写入数据模块才会显示的。
+
+OLED_Init 函数代码如下：
+</pre>
+
+<img src="../../src/img/singlechip/stm-oled-15.png">
+<img src="../../src/img/singlechip/stm-oled-16.png">
+<pre>接着，要介绍的是OLED_Refresh_Gram函数。我们在STM32F1内部定义了一个块GRAM：u8 OLED_GRAM[128][8];  此部分 GRAM 对应 OLED 模块上的 GRAM。在操作的时候，我们只
+要修改 STM32F1 内部的 GRAM 就可以了，然后通过 OLED_Refresh_Gram 函数把 GRAM 一次刷新到 OLED 的 GRAM 上。
+
+该函数代码如下：</pre>
+
+<img src="../../src/img/singlechip/stm-oled-17.png">
+<pre>OLED_Refresh_Gram 函数先设置页地址，然后写入列地址（也就是纵坐标），
+然后从 0 开始写入 128 个字节，写满该页，最后循环把 8 页的内容都写入，就实现了整个从 STM32F1 显存到 OLED 显存的拷贝。
+OLED_Refresh_Gram 函数还用到了一个外部函数，也就是我们接着要介绍的函数：OLED_WR_Byte，该函数直接和硬件相关，函数代码如下：
+</pre>
+
+<img src="../../src/img/singlechip/stm-oled-18.png">
+<pre>2个一样的函数，通过宏定义OLED_MODE来决定使用哪一个。如果OLED_MODE=1，就定义为并口模式，选择第一个函数，而如果为 0，则为 4 线 SPI 模式，选择第二个函数。
+这两个函数输入参数均为 2 个：dat 和 cmd，dat 为要写入的数据，cmd 则表明该数据是命令还是数据。这两个函数的时序操作就是根据上面我们对8080接口以及4线SPI接口的时序来编写的。
+OLED_GRAM[128][8]中的 128 代表列数（x 坐标），而 8 代表的是页，每页又包含 8 行，总共 64 行（y 坐标）。从高到低对应行数从小到大。比如，我们要在 x=100，y=29 这个点写入1，
+则可以用这个句子实现：OLED_GRAM[100][4]|=1&lt;&lt;2；
+一个通用的在点（x，y）置 1 表达式为：OLED_GRAM[x][7-y/8]|=1&lt;&lt;(7-y%8)；
+其中 x 的范围为：0~127；y 的范围为：0~63。
+因此，我们可以得出下一个将要介绍的函数：画点函数，void OLED_DrawPoint(u8 x，u8 y，u8 t)；函数代码如下：&lt;/pre>
+
+<img src="../../src/img/singlechip/stm-oled-19.png">
+
+
+<pre>该函数有 3 个参数，前两个是坐标，第三个 t 为要写入 1 还是 0。该函数实现了我们在 OLED模块上任意位置画点的功能。
+接下来，我们介绍一下显示字符函数，OLED_ShowChar，在介绍之前，我们来介绍一下字符（ASCII 字符集）是怎么显示在 OLED 模块上去的。要显示字符，我们先要有字符的点阵数
+据，ASCII 常用的字符集总共有 95 个，从空格符开始，分别为： !"#$%&'()*+,-0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~.
+我们先要得到这个字符集的点阵数据，这里我们介绍一个款很好的字符提取软件：PCtoLCD2002 完美版。该软件可以提供各种字符，包括汉字（字体和大小都可以自己设置）阵
+提取，且取模方式可以设置好几种，常用的取模方式，该软件都支持。该软件还支持图形模式，也就是用户可以自己定义图片的大小，然后画图，根据所画的图形再生成点阵数据，这功能在
+制作图标或图片的时候很有用。
+该软件的界面如图 17.3.1 所示：</pre>
+
+<img src="../../src/img/singlechip/stm-oled-20.png">
+<img src="../../src/img/singlechip/stm-oled-21.png">
+<img src="../../src/img/singlechip/stm-oled-22.png">
+<pre>上图设置的取模方式，在右上角的取模说明里面有，即：从第一列开始向下每取 8 个点作为一个字节，如果最后不足 8 个点就补满 8 位。取模顺序是从高到低，即第一个点作为最高位。
+如*-------取为 10000000。其实就是按如图 17.3.3 所示的这种方式：
+从上到下，从左到右，高位在前。我们按这样的取模方式，然后把 ASCII 字符集按 12*6大小、16*8 和 24*12 大小取模出来（对应汉字大小为 12*12、16*16 和 24*24，字符的只有汉字的一半大！），保存在 oledfont.h 里面，每个 12*6 的字符占用 12 个字节，每个 16*8 的字符占用16 个字节，每个 24*12 的字符占用 36 个字节。具体见 oledfont.h 部分代码（该部分我们不再这里列出来了，请大家参考光盘里面的代码）。
+在知道了取模方式之后，我们就可以根据取模的方式来编写显示字符的代码了，这里我们针对以上取模方式的显示字符代码如下：
+</pre>
+
+<img src="../../src/img/singlechip/stm-oled-23.png">
+<img src="../../src/img/singlechip/stm-oled-24.png">
+
+<pre>该函数为字符以及字符串显示的核心部分，函数中 chr=chr-' ';这句是要得到在字符点阵数据里面的实际地址，因为我们的取模是从空格键开始的，例如 oled_asc2_1206[0][0]，代表的是
+空格符开始的点阵码。在接下来的代码，我们也是按照从上到小(先 y++)，从左到右（再 x++）的取模方式来编写的，先得到最高位，然后判断是写 1 还是 0，画点；接着读第二位，如此循
+环，直到一个字符的点阵全部取完为止。这其中涉及到列地址和行地址的自增，根据取模方式来理解，就不难了。
+oled.c 的内容就为大家介绍到这里，将 oled.c 保存，然后加入到 HARDWARE 组下。接下来我们在 oled.h 中输入如下代码：
+</pre>
+<img src="../../src/img/singlechip/stm-oled-25.png">
+<img src="../../src/img/singlechip/stm-oled-26.png">
+
+<pre>该部分比较简单，OLED_MODE 的定义也在这个文件里面，我们必须根据自己 OLED 模块 BS1 和 BS2 的设置（目前代码仅支持 8080 和 4 线 SPI）来确定 OLED_MODE 的值。
+保存好 oled.h 之后，我们就可以在主程序里面编写我们的应用层代码了，该部分代码如下：</pre>
+
+<img src="../../src/img/singlechip/stm-oled-27.png">
+<img src="../../src/img/singlechip/stm-oled-28.png">
+<img src="../../src/img/singlechip/stm-oled-29.png">
+</body>
+</html>

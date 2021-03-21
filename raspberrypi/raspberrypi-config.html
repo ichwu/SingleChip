@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>Raspberrypi 配置</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/raspberrypi.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">Raspberrypi 配置</div>
+<br><br><h3>摄像头配置</h3><br>
+1.首先使用 ls -al /etc 指令来查看是否加载到了对应的video device设备：
+	如果没有发现我们的设备，接下来要做的是添加摄像头的驱动程序.ko文件
+		sudo vim /etc/modules 在最后添加如下的代码：bcm2835-v4l2
+	和对应的raspiberry B3+的硬件使能问题
+		sudo raspi-config 开启Camera 并重启
+2.使用内置软件
+	raspistill -o image.jpg
+    raspivid -o mykeychain.h264 -t 10000 -w 1280 -h 720 
+
+<br><br><h3>使用raspi-config配置树莓派</h3><br>
+<img src="../../src/img/raspberrypi-raspi-config.png" alt="raspberrypi-raspi-config.png" width="900px">
+
+<br><br><h3>使用df -h 查看树莓派硬盘空间使用情况</h3><br>
+<img src="../../src/img/raspberrypi-cf-df-h.png" alt="raspberrypi-cf-df-h" width="900px">
+
+<br><br><h3>ARP（Address Resolution Protocol）即地址解析协议
+用于实现从 IP 地址到 MAC 地址的映射，即询问目标IP对应的MAC地址。</h3><br>
+<p>如在树莓派输入：arp -a        第一个为路由器地址  第二个为电脑地址</p>
+<img src="../../src/img/raspberrypi-arp.png" alt="raspberrypi-arp" width="900px">
+
+<br><br><h3>输入 arp -a   弹出的IP 地址和MAC地址，注意找开头是b8 的（树莓派一般就b8）</h3><br>
+<p>如在电脑输入：arp -a</p>
+<img src="../../src/img/raspberrypi-b8.png" alt="raspberrypi-b8" width="900px">
+
+<br><br><h3>使用whereis wiringPi查看wiringPi.h</h3><br>
+<img src="../../src/img/raspberrypi-wringpi.png" alt="raspberrypi-wringpi" width="900px">
+
+<br><br><h3>其他命令</h3><br>
+netstat
+<br>	tracert
+<br>	nbtstat
+<br>比如：tracert -4 raspberrypi 可以查看树莓派ipv4地址<br>
+<img src="../../src/img/raspberrypi-other.png" alt="raspberrypi-other" width="900px">
+
+<br><br><h3>在windows查看树莓派ip地址：ping -4 raspberrypi</h3><br>
+<img src="../../src/img/raspberrypi-windowsip.png" alt="raspberrypi-windowsip" width="900px">
+
+<br><br><h3>使用ifconfig查看树莓派ip地址</h3><br>
+<img src="../../src/img/raspberrypi-ifconfig.png" alt="raspberrypi-ifconfig" width="900px">
+
+<br><br><h3>使用gpio readall查看io口</h3><br>
+<img src="../../src/img/raspberrypi-readall.png" alt="raspberrypi-readall" width="900px">
+
+<br><br><h3>使用pinout查看io口</h3><br>
+<img src="../../src/img/raspberrypi-pinout.png" alt="raspberrypi-pinout" width="900px">
+
+<br><br><h3>Raspberrypi GPIO</h3><br>
+<img src="../../src/img/raspberrypi-gpio.png" alt="raspberrypi-gpio" width="900px">
+
+<br><br><h3>开机自动运行程序</h3><br>
+<p>编写LED闪烁程序 在/etc/rc.local中exit 0 前加上sudo /home/pi/Documents/blink</p>
+<p>http://wiringpi.com/</p>
+<p>https://blog.csdn.net/syx3904/article/details/105417863?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param</p>
+
+</body>
+</html>

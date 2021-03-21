@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <title>按键输入</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <link rel="shortcut icon" type="image/x-icon" href="../../src/img/cover/cover_title.png"/>
+    <!-- Prism -->
+    <link rel="stylesheet" href="../../css/prism.css">
+    <script src="../../js/prism.js"></script>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <!-- My style.css-->
+    <link rel="stylesheet" href="../../css/bootstrap-m-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+
+<a href="../index/singlechip.html">
+<svg class="bi bi-arrow-left-square" width="3em" height="3em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" d="M14 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+  <path fill-rule="evenodd" d="M8.354 11.354a.5.5 0 0 0 0-.708L5.707 8l2.647-2.646a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708 0z"/>
+  <path fill-rule="evenodd" d="M11.5 8a.5.5 0 0 0-.5-.5H6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5z"/>
+</svg>
+</a>
+
+<br>
+<div class="m-label">按键输入</div>
+
+<img src="../../src/img/singlechip/stm-key-1.png">
+
+<pre>战舰 STM32F103 上载有的 4 个按钮（KEY_UP、KEY0、KEY1 和 KEY2），
+来控制板上的 2 个 LED   DS0 和 DS1 和 蜂鸣器，
+KEY_UP 控制蜂鸣器，按一次叫，再按一次停；
+KEY2 控制 DS0，按一次亮，再按一次灭；                                                        
+KEY1 控制 DS1，效果同 KEY2；                                                                       
+KEY0 则同时控制 DS0 和 DS1，按一次，他们的状态就翻转一次。                 
+
+PB5  -  DS0 -  D4
+PE5  -  DS1 -  D2
+
+PE2  -  KEY2    -   NONE
+PE3  -  KEY1    -   KEY2
+PE4  -  KEY0    -   KEY1
+PA0  -  WK_UP -  WK_UP
+
+KEY0、KEY1 和 KEY2 是低电平有效的，而 KEY_UP 是高电平有效的，并且外部都没有上下拉电阻，所以，需要在 STM32F1 内部设置上下拉
+
+key.c
+</pre>
+
+
+<img src="../../src/img/singlechip/stm-key-2.png">
+<img src="../../src/img/singlechip/stm-key-3.png">
+
+<pre>void KEY_Init(void)和 u8 KEY_Scan(u8 mode)，KEY_Init 是用来初始化按键输入的 IO 口的。
+
+KEY_Scan 函数，则是用来扫描这 4 个 IO 口是否有按键按下。KEY_Scan 函数，支持两种扫描方式，通过 mode 参数来设置。
+当 mode 为 0 的时候，KEY_Scan 函数将不支持连续按，扫描某个按键，该按键按下之后必须要松开，才能第二次触发，否则不会再响应这个 
+                      按键，这样的好处就是可以防止按一次多次触发，而坏处就是在需要长按的时候比较不合适。
+当 mode 为 1 的时候，KEY_Scan 函数将支持连续按，如果某个按键一直按下，则会一直返回这个按键的键值，这样可以方便的实现长按检。
+
+
+因为该函数里面有 static 变量，所以该函数不是一个可重入函数，在有 OS 的情况下，这个大家要留意下。
+同时还有一点要注意的就是，该函数的按键扫描是有优先级的，最优先的是 KEY0，第二优先的是 KEY1，接着 KEY2，最后是 KEY3（KEY3 对应 KEY_UP 按键）。该函数有返回值，如果有按键按下，则返回非 0 值，如果没有或者按键不正确，则返回 0。
+保存 key.c 代码，然后我们按同样的方法，新建一个 key.h 文件，也保存在 KEY 文件夹下面。在 key.h 中输入如下代码
+
+key.h</pre>
+
+<img src="../../src/img/singlechip/stm-key-4.png">
+<br>test.c
+<img src="../../src/img/singlechip/stm-key-5.png">
+<img src="../../src/img/singlechip/stm-key-6.png">
+
+</body>
+</html>
